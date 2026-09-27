@@ -124,6 +124,14 @@ nav:
       - Database Sharding: 08-Scalability/Database-Sharding.md
       - Rate Limiting and Throttling: 08-Scalability/Rate-Limiting-and-Throttling.md
       - Auto-scaling and Capacity Planning: 08-Scalability/Auto-scaling-and-Capacity-Planning.md
+  - Security:
+      - 09-Security/index.md
+      - Why Hackers Succeed: 09-Security/Why-Hackers-Succeed.md
+      - The Most Common Web Attacks: 09-Security/The-Most-Common-Web-Attacks.md
+      - Zero Trust Architecture: 09-Security/Zero-Trust-Architecture.md
+      - How Secure Systems Are Built: 09-Security/How-Secure-Systems-Are-Built.md
+      - Cryptography for Engineers: 09-Security/Cryptography-For-Engineers.md
+      - Software Supply Chain Security: 09-Security/Software-Supply-Chain-Security.md
   - Reliability:
       - 10-Reliability/index.md
       - Why Systems Go Down: 10-Reliability/Why-Systems-Go-Down.md
@@ -150,6 +158,5 @@ nav:
   - More:
       - Learning Paths: 14-Learning-Paths/index.md
       - Software Architecture: 07-Software-Architecture/index.md
-      - Security: 09-Security/index.md
       - Engineering Leadership: 12-Engineering-Leadership/index.md
       - Case Studies: 13-Case-Studies/index.md

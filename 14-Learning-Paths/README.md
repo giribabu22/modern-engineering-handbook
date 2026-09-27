@@ -93,6 +93,8 @@ This section provides guided reading paths for different roles and goals. Each p
 10. [Rate Limiting and Throttling](../08-Scalability/Rate-Limiting-and-Throttling.md)
 11. [Database Sharding](../08-Scalability/Database-Sharding.md)
 12. [Building LLM-Powered Systems](../15-AI-Era-Engineering/Building-LLM-Powered-Systems.md) — most backends now call a model somewhere
+13. [The Most Common Web Attacks](../09-Security/The-Most-Common-Web-Attacks.md) — the bugs every backend engineer must prevent
+14. [Cryptography for Engineers](../09-Security/Cryptography-For-Engineers.md)
 
 ---
 

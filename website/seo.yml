@@ -141,8 +141,27 @@ README.md:
   description: "How auto-scaling works, which metrics to scale on, how to plan capacity for peak load, and why GPU inference needs different signals."
 
 09-Security/README.md:
-  title: "Software Security Fundamentals — How Systems Break"
-  description: "The security mindset, defense in depth, common web attacks, zero trust, and securing AI systems against prompt injection."
+  title: "Software Security for Engineers — Attacks, Defenses, Zero Trust"
+  description: "How systems get breached and how to protect them: attacker entry points, OWASP web attacks, zero trust, secure development, cryptography, and supply chain security."
+09-Security/Why-Hackers-Succeed.md:
+  title: "Why Hackers Succeed — How Real Breaches Happen"
+  description: "The most common ways attackers get in — stolen credentials, phishing, unpatched software, misconfiguration, third parties — and defense in depth, threat modeling with STRIDE."
+09-Security/The-Most-Common-Web-Attacks.md:
+  title: "The Most Common Web Attacks — SQL Injection, XSS, CSRF, IDOR, SSRF"
+  description: "OWASP Top 10 attacks explained with fixes: SQL injection, cross-site scripting, broken access control and IDOR, CSRF, SSRF, and security headers."
+09-Security/Zero-Trust-Architecture.md:
+  title: "Zero Trust Architecture Explained — Never Trust, Always Verify"
+  description: "Zero trust for engineers: BeyondCorp, identity-aware access, device posture, mutual TLS, workload identity, micro-segmentation, and NIST SP 800-207."
+09-Security/How-Secure-Systems-Are-Built.md:
+  title: "How Secure Systems Are Built — Secure Development Lifecycle"
+  description: "Building security in: Saltzer and Schroeder principles, threat modeling, secrets management, SAST, SCA, secret scanning, hardening, and vulnerability management."
+09-Security/Cryptography-For-Engineers.md:
+  title: "Cryptography for Engineers — Hashing, Encryption, Signatures"
+  description: "Practical cryptography: hashes, HMAC, AES-GCM authenticated encryption, public-key signatures, password hashing with Argon2, key management, and post-quantum."
+09-Security/Software-Supply-Chain-Security.md:
+  title: "Software Supply Chain Security — SBOM, SLSA, Sigstore"
+  description: "Securing dependencies and builds: SolarWinds, Log4Shell, xz utils, typosquatting, dependency confusion, lockfiles, SBOMs, SLSA, and artifact signing."
+
 10-Reliability/README.md:
   title: "Reliability Engineering — Building Systems That Survive Failure"
   description: "Why systems fail and how to make them resilient: outages, SRE and SLOs, chaos engineering, disaster recovery, observability, and reliable AI features."
