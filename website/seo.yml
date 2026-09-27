@@ -145,7 +145,25 @@ README.md:
   description: "The security mindset, defense in depth, common web attacks, zero trust, and securing AI systems against prompt injection."
 10-Reliability/README.md:
   title: "Reliability Engineering — Building Systems That Survive Failure"
-  description: "How reliable systems are designed for failure with redundancy, chaos engineering, disaster recovery, observability, and graceful degradation."
+  description: "Why systems fail and how to make them resilient: outages, SRE and SLOs, chaos engineering, disaster recovery, observability, and reliable AI features."
+10-Reliability/Why-Systems-Go-Down.md:
+  title: "Why Systems Go Down — Outage Triggers, Cascades, and Postmortems"
+  description: "Why production outages happen: changes as triggers, retries and overload as amplifiers, cascading failures, hidden dependencies, and blameless postmortems."
+10-Reliability/How-Google-Handles-Failures.md:
+  title: "How Google Handles Failures — SRE, SLOs, and Error Budgets"
+  description: "Google's Site Reliability Engineering explained: SLIs, SLOs, SLAs, error budgets, burn-rate alerts, toil, blameless postmortems, and disaster testing."
+10-Reliability/How-Netflix-Builds-Resilient-Systems.md:
+  title: "How Netflix Builds Resilient Systems — Chaos Engineering Explained"
+  description: "Netflix's resilience approach: timeouts, circuit breakers, bulkheads, fallbacks, Chaos Monkey, region evacuation, and how to run safe chaos experiments."
+10-Reliability/Disaster-Recovery-Explained.md:
+  title: "Disaster Recovery Explained — RPO, RTO, and DR Strategies"
+  description: "Disaster recovery for engineers: RPO and RTO, backup and restore, pilot light, warm standby, active-active, failover, failback, and DR drills."
+10-Reliability/Observability-Monitoring-Alerting-And-Debugging.md:
+  title: "Observability Explained — Metrics, Logs, Traces, and Alerting"
+  description: "Observability for engineers: metrics, structured logs, distributed tracing, golden signals, percentiles, symptom-based alerting, OpenTelemetry, and debugging."
+10-Reliability/Graceful-Degradation-For-AI-Features.md:
+  title: "Graceful Degradation for AI Features — LLM Fallbacks and Deadlines"
+  description: "How to keep AI features reliable: degradation ladders, deadlines, output validation, model fallbacks, cached and non-AI experiences, and kill switches."
 11-Production-Engineering/README.md:
   title: "Production Engineering — Deployments, Incidents, and SLOs"
   description: "Operating software in production — deployment strategies, incident response, postmortems, SLOs and error budgets, and operating LLM features."

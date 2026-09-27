@@ -124,6 +124,14 @@ nav:
       - Database Sharding: 08-Scalability/Database-Sharding.md
       - Rate Limiting and Throttling: 08-Scalability/Rate-Limiting-and-Throttling.md
       - Auto-scaling and Capacity Planning: 08-Scalability/Auto-scaling-and-Capacity-Planning.md
+  - Reliability:
+      - 10-Reliability/index.md
+      - Why Systems Go Down: 10-Reliability/Why-Systems-Go-Down.md
+      - How Google Handles Failures: 10-Reliability/How-Google-Handles-Failures.md
+      - How Netflix Builds Resilient Systems: 10-Reliability/How-Netflix-Builds-Resilient-Systems.md
+      - Disaster Recovery Explained: 10-Reliability/Disaster-Recovery-Explained.md
+      - Observability: 10-Reliability/Observability-Monitoring-Alerting-And-Debugging.md
+      - Graceful Degradation for AI Features: 10-Reliability/Graceful-Degradation-For-AI-Features.md
   - AI Engineering:
       - 15-AI-Era-Engineering/index.md
       - How LLMs Actually Work: 15-AI-Era-Engineering/How-LLMs-Actually-Work.md
@@ -135,7 +143,6 @@ nav:
       - Learning Paths: 14-Learning-Paths/index.md
       - Software Architecture: 07-Software-Architecture/index.md
       - Security: 09-Security/index.md
-      - Reliability: 10-Reliability/index.md
       - Production Engineering: 11-Production-Engineering/index.md
       - Engineering Leadership: 12-Engineering-Leadership/index.md
       - Case Studies: 13-Case-Studies/index.md

@@ -126,7 +126,13 @@ This section provides guided reading paths for different roles and goals. Each p
 5. [Auto-scaling and Capacity Planning](../08-Scalability/Auto-scaling-and-Capacity-Planning.md)
 6. [Evaluating AI Systems](../15-AI-Era-Engineering/Evaluating-AI-Systems.md) — quality as a production signal
 7. [Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md) — especially "Securing Coding Agents"
-8. 📝 Section 10 (Reliability) and Section 11 (Production Engineering)
+8. [Why Systems Go Down](../10-Reliability/Why-Systems-Go-Down.md)
+9. [How Google Handles Failures](../10-Reliability/How-Google-Handles-Failures.md) — SLOs and error budgets
+10. [How Netflix Builds Resilient Systems](../10-Reliability/How-Netflix-Builds-Resilient-Systems.md)
+11. [Observability: Monitoring, Alerting, and Debugging](../10-Reliability/Observability-Monitoring-Alerting-And-Debugging.md)
+12. [Disaster Recovery Explained](../10-Reliability/Disaster-Recovery-Explained.md)
+13. [Graceful Degradation for AI Features](../10-Reliability/Graceful-Degradation-For-AI-Features.md)
+14. 📝 Section 11 (Production Engineering)
 
 ---
 
