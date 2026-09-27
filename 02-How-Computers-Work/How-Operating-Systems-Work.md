@@ -4,6 +4,58 @@
 
 ---
 
+> *“Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface.”*
+>
+> — **Doug McIlroy**, the Unix philosophy, as summarized in Peter H. Salus, *A Quarter Century of Unix*, 1994
+
+## At a Glance
+
+> **In one sentence:** An operating system is a resource manager: it shares CPUs, memory, files, and devices among many programs, isolates them from each other, and exposes it all through system calls.
+
+**You'll learn**
+
+- The kernel/user-space boundary and system calls
+- Processes vs. threads, process states, and context switching
+- How schedulers decide what runs next
+- File descriptors, signals, and inter-process communication
+- How containers are built from namespaces and cgroups
+- Classic failures: fork bombs, descriptor exhaustion, zombies, OOM kills
+
+**Before you start:** [How Memory Works](How-Memory-Works.md) · [How CPUs Execute Instructions](How-CPUs-Execute-Instructions.md)
+
+**Reading time:** about 50 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TB
+    subgraph US["User space"]
+        A1["Your app"]
+        A2["Browser"]
+        A3["Database"]
+    end
+    subgraph KS["Kernel"]
+        S["System call interface"] --> SCH["Scheduler"]
+        S --> MM["Memory manager"]
+        S --> VFS["File systems"]
+        S --> NET["Network stack"]
+        SCH --> DRV["Device drivers"]
+        MM --> DRV
+        VFS --> DRV
+        NET --> DRV
+    end
+    A1 -- "system calls" --> S
+    A2 --> S
+    A3 --> S
+    DRV --> HW["Hardware: CPU, RAM, disk, network card"]
+```
+
+*Programs never touch hardware directly: they ask the kernel through system calls, and the kernel shares the machine among everyone.*
+
+---
+
 ## Introduction
 
 Imagine an office building with a single conference room but two hundred employees who all believe they have exclusive use of it, all day, every day. Somehow, every employee gets their meeting. Nobody notices the room was actually shared. Nobody double-books it into a shouting match. If someone throws a tantrum and refuses to leave, security removes them without damaging the room for the next tenant.
@@ -979,6 +1031,114 @@ I'd explain that a CPU core can only truly execute one thread's instructions at 
 
 ---
 
+## Hands-On Lab
+
+Experiments 2 and 3 need Linux. On Windows, install WSL (`wsl --install`); on macOS, use Docker or a Linux VM.
+
+**Experiment 1 — Processes and threads on your machine.**
+
+- **Windows (PowerShell):** `Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 Name, Id, CPU, Threads` — note the thread counts. Browsers often run dozens of processes with many threads each.
+- **macOS/Linux:** `ps -eo pid,ppid,nlwp,rss,comm --sort=-rss | head` — `nlwp` is the number of threads, `ppid` is the parent process.
+
+**Experiment 2 — Count system calls.**
+
+```bash
+strace -c ls > /dev/null
+```
+
+`strace` lists every system call `ls` made: `openat`, `read`, `getdents64` (read a directory), `write`, `mmap`, and more. Even a trivial program asks the kernel for help dozens of times. Try `strace -f -e trace=openat python3 -c "print(1)"` to see every file Python opens at startup.
+
+**Experiment 3 — Watch a cgroup memory limit kill a process.**
+With Docker installed:
+
+```bash
+docker run --rm --memory=100m python:3.12-slim \
+  python -c "x = b'x' * (200 * 1024 * 1024); print('survived')"
+echo "exit code: $?"
+```
+
+Expected: the program never prints `survived`, and the exit code is **137** (128 + signal 9, SIGKILL). The container's cgroup allowed only 100 MB, so the kernel's OOM killer stopped the process. This is exactly what happens to real services in Kubernetes when they exceed their memory limit (`OOMKilled`).
+
+Then run `docker run --rm alpine ps` — inside the container's PID namespace, `ps` sees itself as one of the only processes, often with PID 1.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why can't a normal program talk to the hardware directly?</strong></summary>
+
+The CPU runs user programs in an unprivileged mode. Privileged operations (device I/O, changing page tables) are only allowed in kernel mode. Programs must ask the kernel through **system calls**, which lets the OS enforce isolation and permissions.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is the difference between a process and a thread?</strong></summary>
+
+A process has its own address space and resources; processes are isolated from each other. Threads are units of execution *within* a process that share its memory. Threads communicate cheaply but can corrupt each other's data; processes are safer but costlier to create and to communicate between.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What happens during a context switch, and why is it costly?</strong></summary>
+
+The kernel saves the running thread's registers and state, picks another thread, and restores its state. Direct cost is small (microseconds), but indirect costs — cold caches and TLB entries for the new thread — can be larger.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is a file descriptor?</strong></summary>
+
+A small integer a process uses to refer to an open file, socket, pipe, or device. The kernel keeps the real object. Every process has a limit; leaking descriptors (opening without closing) eventually causes "Too many open files" errors.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is a zombie process?</strong></summary>
+
+A child process that has exited but whose parent hasn't yet collected its exit status (with `wait`). It uses no CPU or memory, only a process-table entry. Many zombies indicate a parent that never reaps its children.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Containers vs. virtual machines — what's the key difference?</strong></summary>
+
+Containers share the host's kernel and are isolated using **namespaces** (what a process can see) and **cgroups** (what it can use). VMs run their own kernel on virtualized hardware. Containers start faster and are lighter; VMs give a stronger isolation boundary.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What does exit code 137 usually mean?</strong></summary>
+
+128 + 9: the process was killed by signal 9 (SIGKILL) — most often by the out-of-memory killer after exceeding a memory limit.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Concept | Remember it as |
+|--------|---------------|
+| Kernel mode / user mode | Privileged OS vs. restricted programs |
+| System call | A program's request to the kernel (`read`, `write`, `open`, `fork`, `mmap`) |
+| Process | Running program with its own memory |
+| Thread | Execution path sharing a process's memory |
+| Context switch | Save one thread, restore another |
+| Scheduler | Decides which thread runs next, and for how long |
+| File descriptor | Integer handle to an open file, socket, or pipe |
+| Signal | Asynchronous notification (SIGINT = Ctrl+C, SIGTERM = please stop, SIGKILL = stop now) |
+| Namespaces | Limit what a container can see |
+| cgroups | Limit what a container can use |
+
+**Useful commands:** `ps`, `top`/`htop`, `strace` (Linux), `lsof`, `kill`, `ulimit -n`, `docker stats` · Windows: Task Manager, Resource Monitor, `Get-Process`
+
+**Exit codes:** 0 success · 1 general error · 130 Ctrl+C (SIGINT) · 137 killed (SIGKILL, often OOM) · 143 terminated (SIGTERM)
+
+---
+
 ## In the AI Era
 
 AI coding agents don't just suggest text — they **run commands on real operating systems**: executing tests, installing packages, editing files, and calling network services. The OS isolation primitives in this chapter are now the primary safety mechanism for AI tools.
@@ -1021,6 +1181,14 @@ The OS also explains agent *performance*. Agents spawn many short-lived processe
 9. **Containers are namespaces plus cgroups on a shared kernel — not lightweight VMs.** They provide strong-enough isolation for trusted, cooperative multi-tenancy, but a genuinely weaker security boundary than a hypervisor, which matters enormously for untrusted-code scenarios.
 
 10. **The OS abstractions that seemed academic in a textbook — scheduling, memory isolation, syscalls, signals — are exactly what you're debugging when a production service mysteriously slows down, leaks resources, or gets OOM-killed.** Understanding them turns "it's just slow, restart it" into "here's the actual mechanism and the actual fix."
+
+---
+
+## What to Read Next
+
+- **[How File Systems Work](../04-Data-And-Storage/How-File-Systems-Work.md)** — the storage side of the operating system
+- **[The Memory Hierarchy Explained](The-Memory-Hierarchy-Explained.md)** — why context switches and cache misses cost so much
+- **[Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md)** — OS isolation as the safety net for AI agents
 
 ---
 

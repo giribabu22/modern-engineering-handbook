@@ -4,6 +4,44 @@
 
 ---
 
+> *“If at first you don't succeed, back off exponentially.”*
+>
+> — **Dan Sandler**, epigraph to "Addressing Cascading Failures," Google's *Site Reliability Engineering* book, 2016
+
+## At a Glance
+
+> **In one sentence:** Rate limiting caps how many requests a client can make in a period, protecting services from overload, abuse, and runaway costs — using algorithms like token bucket or sliding window, enforced consistently across servers, with clear 429 responses.
+
+**You'll learn**
+
+- Why rate limiting and throttling exist
+- Token bucket, leaky bucket, fixed window, and sliding window algorithms
+- Distributed rate limiting with a shared store
+- Choosing limits per user, key, IP, or tenant
+- HTTP 429, Retry-After, and client-side backoff
+- Load shedding and graceful degradation
+
+**Before you start:** [How Load Balancing Works](How-Load-Balancing-Works.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    REF["Refill: 5 tokens per second"] --> B[("Bucket<br/>holds up to 10 tokens")]
+    REQ["Incoming request"] --> Q{"Token available?"}
+    B --- Q
+    Q -- "yes: take one" --> OK["Handle request"]
+    Q -- "no" --> NO["429 Too Many Requests<br/>+ Retry-After"]
+```
+
+*A token bucket refills at a steady rate; each request spends a token, and an empty bucket means HTTP 429.*
+
+---
+
 ## Introduction
 
 Imagine a popular nightclub with a single door and a fire-code capacity of 200 people. On a busy Saturday night, a line of a thousand people wants in at once. The bouncer at the door doesn't let everyone in simultaneously — that would violate fire code and create a crush at the bar. Instead, the bouncer admits people at a steady pace: one group in, roughly one group out. Some nights, the bouncer also caps how many times the same rowdy group can re-enter after being asked to leave.
@@ -1035,6 +1073,125 @@ Rate limiting is a *per-client fairness* mechanism — a static or tier-based qu
 
 ---
 
+## Hands-On Lab
+
+Implement the two most common algorithms and throw the same burst of traffic at both.
+
+```python
+import time
+
+class TokenBucket:
+    def __init__(self, rate, capacity):
+        self.rate, self.capacity = rate, capacity
+        self.tokens, self.last = capacity, 0.0
+    def allow(self, now):
+        self.tokens = min(self.capacity, self.tokens + (now - self.last) * self.rate)
+        self.last = now
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
+
+class SlidingWindowLog:
+    def __init__(self, limit, window):
+        self.limit, self.window, self.log = limit, window, []
+    def allow(self, now):
+        self.log = [t for t in self.log if t > now - self.window]
+        if len(self.log) < self.limit:
+            self.log.append(now)
+            return True
+        return False
+
+# 25 requests arrive at once at t=0, then 1 request every 0.1 s for 3 seconds
+arrivals = [0.0] * 25 + [round(0.1 * i, 1) for i in range(1, 31)]
+
+for name, limiter in [("token bucket (5/s, burst 10)", TokenBucket(rate=5, capacity=10)),
+                      ("sliding window (10 per 2 s)", SlidingWindowLog(limit=10, window=2.0))]:
+    decisions = [limiter.allow(t) for t in arrivals]
+    print(f"{name:30} allowed {sum(decisions):>2} of {len(arrivals)}   "
+          f"burst allowed: {sum(decisions[:25])}   rejected (HTTP 429): {decisions.count(False)}")
+```
+
+**What to notice**
+- The token bucket lets a burst up to its capacity through at once, then settles to its refill rate. That is friendly to real clients, which are bursty.
+- The sliding window strictly enforces "at most N in any window", with no bursts beyond N.
+- Both need shared state (for example, in Redis) when you run more than one server — otherwise each server enforces its own separate limit.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. How does a token bucket work?</strong></summary>
+
+Tokens are added at a steady rate up to a maximum (the bucket size). Each request uses one token; with no tokens, the request is rejected or delayed. The bucket size allows short bursts; the refill rate sets the long-term average.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What's wrong with a simple fixed-window counter?</strong></summary>
+
+A client can send the full limit at the end of one window and again at the start of the next, getting double the intended rate in a short time. Sliding windows smooth this out.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why does rate limiting need shared state in a multi-server system?</strong></summary>
+
+If each server counts separately, a client spread across 10 servers gets 10× the limit. A shared store such as Redis (with atomic operations) or a dedicated rate-limit service keeps one count per client.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What should a rate-limited response look like?</strong></summary>
+
+HTTP **429 Too Many Requests**, a `Retry-After` header saying when to try again, and ideally headers showing the limit and remaining quota, so well-behaved clients can slow down.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is load shedding, and how is it different from rate limiting?</strong></summary>
+
+Rate limiting enforces per-client fairness. Load shedding protects the *service* when it's overloaded overall, rejecting low-priority work first (for example, background jobs before checkout requests) to keep the most important traffic working.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Should a rate limiter fail open or fail closed if its store is unavailable?</strong></summary>
+
+It depends on the purpose. For abuse and cost protection, failing closed is safer. For general fairness, many systems fail open (allow traffic) to avoid turning a limiter outage into a full outage — often with a local fallback limit.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Why should AI or expensive APIs limit by cost or tokens, not just requests?</strong></summary>
+
+One request can cost thousands of times more than another. Request counts don't reflect the real load or spend; token or cost budgets do.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Algorithm | Allows bursts? | Memory | Notes |
+|----------|---------------|-------|------|
+| Token bucket | Yes, up to bucket size | Tiny | Most common; rate + burst |
+| Leaky bucket | No — smooth output | Tiny (queue) | Shapes traffic to a steady rate |
+| Fixed window | Yes, at window edges (up to 2×) | Tiny | Simple, edge problem |
+| Sliding window log | No | Stores each timestamp | Exact, memory-heavy |
+| Sliding window counter | Small | Tiny | Good approximation, widely used |
+
+**Response:** `429 Too Many Requests` + `Retry-After` (+ limit/remaining headers).
+
+**Client side:** exponential backoff with jitter · respect `Retry-After` · cap total retries.
+
+**Limit by:** API key / user (fairness) · IP (anonymous abuse) · tenant (plans) · endpoint (expensive operations) · tokens or cost (AI and heavy workloads).
+
+---
+
 ## In the AI Era
 
 Rate limiting in AI systems is about **tokens and money**, not just requests.
@@ -1075,6 +1232,14 @@ Rate limits are also a security control: unrestricted AI endpoints attract abuse
 9. **Real platforms choose algorithms deliberately and document them:** Stripe and AWS API Gateway favor token bucket; Shopify's REST Admin API explicitly documents leaky bucket; GitHub and Shopify's GraphQL APIs use cost/points-based limiting because flat request counts don't reflect true backend cost for graph queries.
 
 10. **A rate limiter is itself production infrastructure** — it needs monitoring, load testing under real concurrency, high availability, and a considered fail-open-vs-fail-closed policy, not just a quick implementation bolted onto request handling.
+
+---
+
+## What to Read Next
+
+- **[Auto-scaling and Capacity Planning](Auto-scaling-and-Capacity-Planning.md)** — adding capacity instead of rejecting traffic
+- **[Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)** — retries, backoff, and retry storms
+- **[Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md)** — cost-exhaustion and abuse of AI endpoints
 
 ---
 

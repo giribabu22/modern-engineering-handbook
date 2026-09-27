@@ -21,7 +21,12 @@ import yaml
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WEBSITE = ROOT / "website"
 OUT = WEBSITE / ".docs"
-CONFIG = yaml.safe_load((ROOT / "mkdocs.yml").read_text(encoding="utf-8"))
+class _ConfigLoader(yaml.SafeLoader):
+    """Safe loader that tolerates MkDocs' !!python/name tags (we only read plain values)."""
+
+
+_ConfigLoader.add_multi_constructor("tag:yaml.org,2002:python/", lambda loader, suffix, node: None)
+CONFIG = yaml.load((ROOT / "mkdocs.yml").read_text(encoding="utf-8"), Loader=_ConfigLoader)
 SITE_URL = CONFIG["site_url"].rstrip("/") + "/"
 
 SEO = yaml.safe_load((WEBSITE / "seo.yml").read_text(encoding="utf-8"))

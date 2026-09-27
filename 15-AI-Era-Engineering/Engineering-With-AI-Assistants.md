@@ -4,6 +4,43 @@
 
 ---
 
+> *“There is no single development, in either technology or management technique, which by itself promises even one order-of-magnitude improvement within a decade in productivity, in reliability, in simplicity.”*
+>
+> — **Fred Brooks**, "No Silver Bullet — Essence and Accident in Software Engineering," 1986
+
+## At a Glance
+
+> **In one sentence:** AI assistants make writing code cheap but leave understanding, verifying, and owning it expensive — so teams that invest in clear specifications, fast tests, small changes, and careful review get the productivity gains, and teams that don't get more bugs faster.
+
+**You'll learn**
+
+- The spectrum from autocomplete to autonomous agents
+- The verification gap and why it decides your real speed-up
+- What context makes AI assistants effective
+- A workflow: understand, specify, plan, implement, verify, review, own
+- Where AI help shines and where to be careful
+- Team practices, guardrails, and metrics that hold up
+
+**Before you start:** [How To Think Like An Engineer](../01-Foundations/How-To-Think-Like-An-Engineer.md) · [How LLMs Actually Work](How-LLMs-Actually-Work.md)
+
+**Reading time:** about 10 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    U["Understand<br/>(you)"] --> S["Specify done<br/>(you)"] --> P["Plan<br/>(AI drafts, you review)"]
+    P --> I["Implement<br/>(AI, small steps)"] --> V["Verify<br/>(tests, types, you)"]
+    V --> R["Review the diff<br/>(you)"] --> O["Own and merge<br/>(you)"]
+    V -. "fails" .-> I
+```
+
+*AI speeds up the middle of the workflow; the steps that decide quality — specifying, reviewing the plan, verifying, and owning — are still yours.*
+
+---
+
 ## Introduction
 
 Two teams adopt the same AI coding assistant on the same day.
@@ -270,6 +307,79 @@ Follow your organization's policy and the tool's terms. Many enterprise tools of
 
 ---
 
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is the "verification gap"?</strong></summary>
+
+The difference between how fast AI can generate code and how fast humans and tools can verify it's correct. Your real speed-up is limited by verification, so faster tests, type checks, and smaller diffs increase the benefit you get from AI.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why review the plan before the code?</strong></summary>
+
+A wrong approach is cheap to catch in a few lines of plan and expensive to catch in hundreds of lines of code. Plans also reveal misunderstandings of the task early.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. An agent "fixed" a failing test by changing the expected value. What went wrong, and how do you prevent it?</strong></summary>
+
+The agent optimized for "tests pass" instead of "code is correct". Prevent it by stating that tests define correct behavior, reviewing test-file changes with extra care, and keeping test changes separate from fixes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Who is responsible for AI-generated code that causes an incident?</strong></summary>
+
+The engineer who merged it (and the team's process). Ownership doesn't transfer to the tool — if you can't explain the code, you're not ready to ship it.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Which tasks suit AI assistance best?</strong></summary>
+
+Tasks where output is easy to verify: explaining code, writing tests for existing behavior, boilerplate, mechanical refactors checked by compilers and tests, one-off scripts, and drafting documentation.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why is measuring PR count or lines of code misleading after adopting AI tools?</strong></summary>
+
+Output metrics rise easily with AI. What matters is outcomes: lead time to production, change failure rate, time to restore service, and escaped defects.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What guardrails should autonomous coding agents have?</strong></summary>
+
+Sandboxed environments, least-privilege and short-lived credentials, no production access, restricted network egress, human approval for destructive or external actions, and normal code review and CI before merge.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+**The workflow:** Understand → Specify "done" → Review a plan → Implement in small steps → Verify (tests, types, lint, run it) → Review the full diff → Own it.
+
+**A good task prompt includes:** goal · context and examples to follow · constraints (what not to change) · definition of done (tests) · "propose a plan first."
+
+| Great fit | Be careful |
+|----------|-----------|
+| Explaining code | Auth, crypto, permissions |
+| Tests for existing behavior | Concurrency and distributed logic |
+| Boilerplate, scaffolding | Performance-critical paths |
+| Mechanical refactors | Niche or fast-changing libraries |
+| Scripts and internal tools | Huge one-shot changes |
+
+**Before merging AI-written code:** Can I explain every line? · Did I run it and test an edge case? · Do the APIs exist in our versions? · Did any test change? · Would I be comfortable being paged for it?
+
+---
+
 ## Key Takeaways
 
 1. AI makes producing code cheap; understanding, verifying, and owning code remain the expensive — and valuable — parts.
@@ -280,6 +390,14 @@ Follow your organization's policy and the tool's terms. Many enterprise tools of
 6. Give agents isolated environments, least-privilege credentials, and system-enforced approval for destructive actions.
 7. Measure outcomes (lead time, change failure rate, escaped defects), not output (lines, PR count).
 8. Use AI as a tutor, not just a generator, to keep building the skills needed to judge its output.
+
+---
+
+## What to Read Next
+
+- **[Evaluating AI Systems](Evaluating-AI-Systems.md)** — systematic verification for AI features
+- **[Securing AI Systems](Securing-AI-Systems.md)** — safe setup for coding agents
+- **[How To Solve Problems Systematically](../01-Foundations/How-To-Solve-Problems-Systematically.md)** — the process AI should plug into, not replace
 
 ---
 

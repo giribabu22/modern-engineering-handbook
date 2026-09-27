@@ -2,6 +2,50 @@
 
 ---
 
+> *“There are only two hard things in Computer Science: cache invalidation and naming things.”*
+>
+> — **Phil Karlton**, Netscape engineer, widely quoted since the 1990s
+
+## At a Glance
+
+> **In one sentence:** A cache keeps a copy of frequently used data in faster storage so most requests skip the slow path — and the hard parts are deciding what to keep (eviction), keeping copies correct (invalidation), and surviving the moment the cache is empty or fails.
+
+**You'll learn**
+
+- Hit rate, locality, and why caches work
+- Caching patterns: cache-aside, read-through, write-through
+- Eviction policies such as LRU and LFU, and TTLs
+- Cache invalidation strategies and their trade-offs
+- Failure modes: stampedes, cold caches, hot keys, stale data
+- Caching layers from CPU to CDN, and prompt caching for AI
+
+**Before you start:** [The Memory Hierarchy Explained](../02-How-Computers-Work/The-Memory-Hierarchy-Explained.md) · [How Databases Work](../04-Data-And-Storage/How-Databases-Work.md)
+
+**Reading time:** about 25 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+sequenceDiagram
+    participant A as App
+    participant C as Cache
+    participant D as Database
+    A->>C: get user:42
+    C-->>A: miss
+    A->>D: SELECT user 42
+    D-->>A: row
+    A->>C: set user:42 (TTL 5 min)
+    Note over A,C: next reads are cache hits
+    A->>D: UPDATE user 42
+    A->>C: delete user:42
+```
+
+*The cache-aside pattern: check the cache first, fall back to the database on a miss, and delete the cached copy whenever the data changes.*
+
+---
+
 ## Introduction
 
 Imagine you walk into a library to borrow a book. Every single time you need a book, you must walk to the far end of the building, search through thousands of shelves, fill out a request form, and wait for a librarian to retrieve it from a basement archive. That process might take fifteen minutes each time.
@@ -878,6 +922,118 @@ A senior approach: Use Redis Sorted Sets for the leaderboard data. Cache the top
 
 ---
 
+## Hands-On Lab
+
+Measure how hit rate depends on cache size and access pattern, using Python's built-in LRU cache.
+
+```python
+import random
+from functools import lru_cache
+
+random.seed(0)
+N_KEYS, N_REQUESTS = 100_000, 200_000
+
+# Real traffic is skewed: a few keys are very popular (Zipf-like distribution)
+weights = [1 / (rank ** 1.1) for rank in range(1, N_KEYS + 1)]
+skewed = random.choices(range(N_KEYS), weights=weights, k=N_REQUESTS)
+uniform = [random.randrange(N_KEYS) for _ in range(N_REQUESTS)]
+
+def hit_rate(requests, cache_size):
+    @lru_cache(maxsize=cache_size)
+    def load_from_db(key):
+        return f"row-{key}"
+    for key in requests:
+        load_from_db(key)
+    info = load_from_db.cache_info()
+    return info.hits / (info.hits + info.misses)
+
+for size in [100, 1_000, 10_000]:
+    print(f"cache holds {size/N_KEYS:6.1%} of keys -> "
+          f"skewed traffic hit rate {hit_rate(skewed, size):5.1%}, "
+          f"uniform traffic {hit_rate(uniform, size):5.1%}")
+```
+
+**What to notice**
+- With skewed (realistic) traffic, a cache holding about 1% of the keys can serve a large share of requests. With uniform traffic the hit rate is roughly the fraction of keys cached.
+- This is why caches work so well in practice — and why they help little for workloads without hot keys.
+- Try `maxsize=None` (unbounded): the hit rate rises, but memory grows without limit. Eviction policy is the trade-off.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is a cache hit ratio, and why does it matter so much?</strong></summary>
+
+The share of requests served from the cache. At 99%, only 1 in 100 requests reaches the database; at 90%, 10 in 100 do — ten times more load. Small changes in hit rate cause large changes in backend load.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Explain the cache-aside pattern.</strong></summary>
+
+The application checks the cache first. On a miss, it reads from the database, stores the result in the cache, and returns it. On a write, it updates the database and deletes (or updates) the cache entry.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why is deleting a cache entry on write often safer than updating it?</strong></summary>
+
+Two concurrent writers can update the cache in a different order than they updated the database, leaving a stale value indefinitely. Deleting forces the next read to fetch fresh data (with a short race window that TTLs limit).
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is a cache stampede (thundering herd)?</strong></summary>
+
+A popular entry expires, and many requests miss at the same moment and all hit the database together, possibly overloading it. Defenses: request coalescing (one request refreshes while others wait), early probabilistic refresh, and jittered TTLs.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. How does LRU eviction work?</strong></summary>
+
+When the cache is full, it removes the **least recently used** entry, assuming recently used data will be used again soon (temporal locality).
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What happens if you restart a cache in front of a busy database?</strong></summary>
+
+The cache is cold — every request misses — and the database suddenly receives all traffic, which can overload it. Warm caches gradually, route traffic slowly, or rely on replicas to absorb the burst.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Why is caching personalized or permission-dependent data risky?</strong></summary>
+
+If the cache key doesn't include the user or their permissions, one user can be served another user's data. Cache keys must include every input that changes the response.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Pattern | Reads | Writes | Trade-off |
+|--------|------|-------|----------|
+| Cache-aside | App checks cache, then DB on miss | App writes DB, deletes cache key | Simple, flexible; brief staleness possible |
+| Read-through | Cache loads from DB on miss | — | Less app code; cache must know the DB |
+| Write-through | — | Write cache and DB together | Fresh cache; slower writes |
+| Write-behind | — | Write cache now, DB later | Fast writes; risk of loss |
+
+| Problem | Fix |
+|--------|----|
+| Stale data | TTLs, delete-on-write, event-based invalidation |
+| Stampede | Request coalescing, jittered TTLs, early refresh |
+| Hot key | Replicate the key, local in-process cache |
+| Cold start | Warm-up, gradual traffic shift |
+| Data leak | Include user/permissions in cache keys |
+
+---
+
 ## In the AI Era
 
 Caching is one of the biggest cost and latency levers in AI systems, in three distinct forms.
@@ -920,6 +1076,14 @@ Track **cached-token ratio** alongside classic hit rate — it maps directly to 
 9. **Cache hot keys separately.** A single key that receives disproportionate traffic can bottleneck your entire cache cluster.
 
 10. **Start simple.** Use TTL-based caching with LRU eviction. Add complexity (sharding, replication, event-driven invalidation) only as needed.
+
+---
+
+## What to Read Next
+
+- **[Consistency vs Availability](Consistency-vs-Availability.md)** — caches are a consistency decision
+- **[How Load Balancing Works](../08-Scalability/How-Load-Balancing-Works.md)** — cache-aware routing and consistent hashing
+- **[Building LLM-Powered Systems](../15-AI-Era-Engineering/Building-LLM-Powered-Systems.md)** — prompt caching and semantic caching in practice
 
 ---
 

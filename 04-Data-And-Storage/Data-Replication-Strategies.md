@@ -4,6 +4,45 @@
 
 ---
 
+> *“The Dangers of Replication and a Solution.”*
+>
+> — **Jim Gray, Pat Helland, Patrick O'Neil, and Dennis Shasha**, paper title, SIGMOD 1996
+
+## At a Glance
+
+> **In one sentence:** Replication keeps copies of data on several machines for availability, durability, and read scale — using a single leader, multiple leaders, or no leader at all — and every approach must deal with replication lag, failover, and conflicting writes.
+
+**You'll learn**
+
+- Leader-follower, multi-leader, and leaderless replication
+- Synchronous vs. asynchronous replication and their trade-offs
+- Replication lag and the anomalies users actually see
+- Conflict resolution: last-write-wins, version vectors, CRDTs
+- Quorum reads and writes (W + R > N)
+- Failover dangers like split-brain
+
+**Before you start:** [How Databases Work](How-Databases-Work.md) · [Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    C["Clients"] -- "writes" --> L["Leader"]
+    L -- "change log (synchronous)" --> F1["Follower 1"]
+    L -- "change log (asynchronous)" --> F2["Follower 2"]
+    L -- "change log (asynchronous)" --> F3["Follower 3<br/>(another region)"]
+    C -. "reads (may be stale)" .-> F2
+    C -. "reads (may be stale)" .-> F3
+```
+
+*In leader-follower replication, every write goes to the leader, which streams its change log to followers — synchronously for safety or asynchronously for speed.*
+
+---
+
 ## Introduction
 
 Imagine a company with a single, brilliant accountant who keeps the entire company's books in one notebook. She's fast, she's accurate, and everyone trusts her numbers completely — until she gets sick for a week, and suddenly nobody can answer "what's our current balance?" Now imagine the company hires two more accountants and has all three keep synchronized copies of the same notebook. Suddenly, if one is out sick, the company keeps running. But now a new problem exists: what happens when two accountants write different numbers into their notebooks at the same time, in different cities, before they've had a chance to compare notes?
@@ -706,6 +745,125 @@ Key factors: the actual consistency requirements of the specific data (if it's g
 
 ---
 
+## Hands-On Lab
+
+This small Python simulation shows the two most important replication behaviors — replication lag and quorums — without setting up real servers.
+
+```python
+import random
+
+class Replica:
+    def __init__(self): self.data, self.version = {}, {}
+    def apply(self, key, value, version):
+        if version > self.version.get(key, 0):
+            self.data[key], self.version[key] = value, version
+
+# --- 1) Asynchronous leader-follower: stale reads -----------------------------
+leader, follower = Replica(), Replica()
+pending = []                                       # changes not yet shipped
+leader.apply("profile_name", "Priya", 1)
+pending.append(("profile_name", "Priya", 1))
+
+print("read from leader:  ", leader.data.get("profile_name"))
+print("read from follower:", follower.data.get("profile_name"))   # None: lag!
+for change in pending: follower.apply(*change)                    # replication catches up
+print("follower later:    ", follower.data.get("profile_name"))
+
+# --- 2) Leaderless quorums: N=3 replicas, W writes, R reads -------------------
+def trial(W, R, N=3):
+    replicas = [Replica() for _ in range(N)]
+    for r in random.sample(replicas, W):           # write reaches only W replicas
+        r.apply("x", "new", 2)
+    for r in replicas:
+        r.apply("x", "old", 1)                     # everyone has the old value
+    answers = [r for r in random.sample(replicas, R)]
+    newest = max(answers, key=lambda r: r.version["x"])
+    return newest.data["x"] == "new"
+
+for W, R in [(1, 1), (2, 1), (2, 2), (3, 1)]:
+    ok = sum(trial(W, R) for _ in range(10_000)) / 10_000
+    print(f"W={W} R={R}  W+R>N: {W + R > 3!s:5}  read saw latest write {ok:.0%} of the time")
+```
+
+**What to notice**
+- The follower returns nothing until replication catches up — the source of "I saved it but it's gone" bugs. Fix: read your own writes from the leader, or wait for the replica to reach your write's version.
+- When **W + R > N**, the read set always overlaps the write set, so the latest value is always found (100%). When W + R ≤ N, reads are sometimes stale.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why replicate data at all?</strong></summary>
+
+To survive machine failures (durability and availability), to serve more reads by spreading them across replicas, and to place copies closer to users in other regions.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Synchronous vs. asynchronous replication — what's the trade-off?</strong></summary>
+
+Synchronous: the leader waits for a replica to confirm before acknowledging a write — no data loss on failover, but slower and blocked if the replica is down. Asynchronous: faster and more available, but recent writes can be lost if the leader fails before they are copied.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. A user updates their profile and the page still shows the old value. What happened, and how do you fix it?</strong></summary>
+
+They read from a replica that hadn't received the write yet (replication lag). Provide **read-your-writes** consistency: route that user's reads to the leader for a short time, or read from a replica only once it has caught up to the user's last write.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is split-brain?</strong></summary>
+
+After a network partition or faulty failover, two nodes both believe they are the leader and accept writes independently, causing divergent, conflicting data. Prevent it with consensus-based leader election and fencing of the old leader.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why is last-write-wins dangerous?</strong></summary>
+
+It silently discards all but one of the concurrent writes, based on timestamps that may be skewed between machines. Data is lost without any error.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. In a leaderless system with N=3, what W and R guarantee reading the latest write?</strong></summary>
+
+Any combination where **W + R > N**, such as W=2, R=2. The sets of replicas written and read must overlap, so at least one replica in every read has the latest value.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. When is multi-leader replication worth its complexity?</strong></summary>
+
+When writes must be accepted in several regions or while offline — for example, multi-region apps with local writes, or collaborative and offline-first apps — and the application can handle conflict resolution.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Approach | How writes work | Strength | Main risk |
+|---------|---------------|---------|----------|
+| Leader-follower | All writes to one leader; followers copy | Simple, no write conflicts | Leader bottleneck, failover, lag |
+| Multi-leader | Several leaders accept writes | Local writes in many regions, offline | Write conflicts |
+| Leaderless | Client writes to many replicas (quorum) | High availability | Conflicts, tuning quorums |
+
+| Setting | Meaning |
+|--------|--------|
+| Synchronous | Wait for replica ack — safer, slower |
+| Asynchronous | Don't wait — faster, can lose recent writes |
+| W + R > N | Reads overlap writes — see the latest value |
+
+**User-visible lag anomalies and fixes:** can't see own write → read-your-writes · data "goes back in time" between reads → monotonic reads (stick to one replica) · reply appears before question → consistent prefix reads.
+
+---
+
 ## In the AI Era
 
 Retrieval-Augmented Generation (RAG) systems are replication systems in disguise.
@@ -739,6 +897,14 @@ Good practice: store the source document ID, version, and access-control informa
 8. Split-brain — two nodes both believing they're the leader — is a real, serious risk of naive failover mechanisms, and is why consensus-based leader election (Raft/Paxos) matters so much in production systems.
 9. "Read your own writes" is a specific, named consistency guarantee that requires deliberate engineering (sticky routing, version tracking) in any system with replica-based reads — it is not automatic.
 10. NewSQL systems (CockroachDB, Spanner, YugabyteDB) represent a modern synthesis: per-partition consensus-based replication that gives strong consistency and reasonable geographic flexibility together, at real (but often worthwhile) engineering cost.
+
+---
+
+## What to Read Next
+
+- **[Consistency vs Availability](../05-Distributed-Systems/Consistency-vs-Availability.md)** — the consistency models behind these guarantees
+- **[CAP Theorem Explained](../05-Distributed-Systems/CAP-Theorem-Explained.md)** — what happens to replicas during a network partition
+- **[Backup, Recovery, and Durability](Backup-Recovery-and-Durability.md)** — why replicas are not backups
 
 ---
 

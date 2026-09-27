@@ -4,6 +4,48 @@
 
 ---
 
+> *“A distributed system is one in which the failure of a computer you didn't even know existed can render your own computer unusable.”*
+>
+> — **Leslie Lamport**, email to a DEC SRC mailing list, 1987
+
+## At a Glance
+
+> **In one sentence:** Distributed systems are hard because the network is unreliable, there is no shared clock, and parts fail independently — so a program can never be sure whether a remote operation happened, and every design must plan for partial failure.
+
+**You'll learn**
+
+- The eight fallacies of distributed computing
+- Partial failure and why timeouts can't tell you what happened
+- Clock skew, and why you can't order events by wall-clock time
+- Retries, idempotency, and exactly-once illusions
+- The FLP and Two Generals impossibility results
+- Patterns that make systems survive: timeouts, backoff, circuit breakers, consensus
+
+**Before you start:** [HTTP, TCP/IP, and the Protocol Stack](../03-How-The-Internet-Works/HTTP-TCP-IP-and-the-Protocol-Stack.md) · [How To Think Like An Engineer](../01-Foundations/How-To-Think-Like-An-Engineer.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Payment service
+    C->>S: charge 10 (key: order-42)
+    S->>S: charge card, remember key
+    S--xC: reply lost in the network
+    Note over C: timeout: did it work? unknown
+    C->>S: retry: charge 10 (key: order-42)
+    S->>S: key already seen: do not charge again
+    S-->>C: original result: charged 10
+```
+
+*When a reply is lost, the client can't tell whether the operation happened. Idempotency keys make the retry safe.*
+
+---
+
 ## Introduction
 
 Imagine you and nine coworkers are asked to write a single document together — but you're not allowed to talk in real time. Instead, you each write on your own copy, then mail paper updates to each other by post. Some letters arrive late. Some get lost entirely. Some arrive twice, because the postal worker duplicated them by mistake. Occasionally, a coworker falls silent for days — you don't know if they quit, got sick, or their edits are simply delayed in the mail. Now try to produce one coherent, correct document.
@@ -731,6 +773,126 @@ I'd explain that a single global lock reintroduces a single point of failure and
 
 ---
 
+## Hands-On Lab
+
+This Python simulation shows why "just retry" is dangerous on an unreliable network, and how idempotency keys fix it.
+
+```python
+import random
+random.seed(7)
+
+class PaymentService:
+    def __init__(self):
+        self.charges = []
+        self.seen = {}                                   # idempotency key -> result
+
+    def charge(self, amount, idempotency_key=None):
+        if idempotency_key in self.seen:
+            return self.seen[idempotency_key]            # already done: return same result
+        self.charges.append(amount)                      # the side effect happens...
+        result = f"charged {amount}"
+        if idempotency_key:
+            self.seen[idempotency_key] = result
+        if random.random() < 0.3:                        # ...but the reply is lost 30% of the time
+            raise TimeoutError("no response")
+        return result
+
+def pay_with_retries(service, amount, key=None, attempts=5):
+    for _ in range(attempts):
+        try:
+            return service.charge(amount, key)
+        except TimeoutError:
+            continue                                     # we can't tell if it succeeded!
+    raise RuntimeError("gave up")
+
+naive, safe = PaymentService(), PaymentService()
+for order in range(100):
+    pay_with_retries(naive, 10)
+    pay_with_retries(safe, 10, key=f"order-{order}")
+
+print("customers were supposed to be charged:", 100 * 10)
+print("naive retries charged:               ", sum(naive.charges))
+print("idempotent retries charged:          ", sum(safe.charges))
+```
+
+**What to notice**
+- A timeout does not mean the operation failed — only that you didn't hear back. The naive client charged many customers twice.
+- With an idempotency key, the server recognizes a retry and returns the original result, so retrying becomes safe. Real payment APIs work this way.
+- Try changing the loss rate to 0.0 and 0.6 and watch how the naive total changes.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Name four of the eight fallacies of distributed computing.</strong></summary>
+
+The network is reliable · latency is zero · bandwidth is infinite · the network is secure · topology doesn't change · there is one administrator · transport cost is zero · the network is homogeneous. (Originally listed by L Peter Deutsch and colleagues at Sun Microsystems.)
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. A request to another service times out. What do you know?</strong></summary>
+
+Almost nothing about the outcome: the request may never have arrived, may have been processed with the reply lost, or may still be running. That uncertainty is why retries need idempotency.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What is an idempotent operation, and why does it matter?</strong></summary>
+
+One that has the same effect whether performed once or many times (setting a value, or a request carrying an idempotency key). It makes retries safe on an unreliable network.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why can't you order events across machines by their timestamps?</strong></summary>
+
+Each machine's clock drifts and is corrected at different times, so timestamps from different machines can disagree by milliseconds or more. Two events can appear in the wrong order. Systems use logical clocks, version vectors, or special time services with bounded uncertainty instead.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What does the FLP impossibility result say?</strong></summary>
+
+In a fully asynchronous system where even one process may crash, no deterministic algorithm can guarantee that consensus is always reached. Practical systems like Raft work around it with timeouts — assuming the network is *usually* timely.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why add jitter to exponential backoff?</strong></summary>
+
+Without randomness, many clients that failed at the same moment retry at the same moments, creating synchronized waves of load. Jitter spreads retries out so a recovering service isn't knocked over again.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What does a circuit breaker do?</strong></summary>
+
+After a dependency fails repeatedly, the breaker "opens" and fails calls immediately instead of waiting on timeouts, giving the dependency time to recover and protecting the caller's resources. It periodically lets a test request through to check for recovery.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Problem | Why it happens | Standard defense |
+|--------|---------------|-----------------|
+| Lost or delayed messages | Unreliable network | Timeouts + retries |
+| Duplicate operations | Retries after lost replies | Idempotency keys |
+| Retry storms | Many clients retry together | Exponential backoff with jitter |
+| Slow dependency drags you down | Threads stuck waiting | Timeouts, circuit breakers, bulkheads |
+| Events out of order | Clock skew | Logical clocks, version vectors |
+| Two nodes think they're leader | Partition + failover | Consensus (Raft, Paxos), fencing tokens |
+| Partial failure | Independent components | Health checks, redundancy, graceful degradation |
+
+**The mindset:** assume every remote call can fail, hang, or succeed without telling you — and design so that each of those outcomes is safe.
+
+---
+
 ## In the AI Era
 
 An LLM call is the ultimate unreliable remote call. It has every problem from this chapter, and adds one more:
@@ -768,6 +930,14 @@ That last row is what makes AI systems uniquely tricky: **success at the transpo
 8. **Failure detectors are inherently probabilistic**, trading detection speed against false-positive rate — there is no timeout value that is simultaneously fast and never wrong.
 9. **This chapter sets up, but does not replace,** the CAP theorem ([`CAP-Theorem-Explained.md`](./CAP-Theorem-Explained.md)), caching ([`How-Caching-Works.md`](./How-Caching-Works.md)), failure-handling ([`How-Large-Systems-Handle-Failures.md`](./How-Large-Systems-Handle-Failures.md)), and consensus ([`Consensus-Algorithms-Paxos-and-Raft.md`](./Consensus-Algorithms-Paxos-and-Raft.md)) chapters — each of those is a deep, specific answer to a piece of the general hardness described here.
 10. **You cannot engineer your way out of these problems — only design around them deliberately.** The goal isn't a distributed system that never fails; it's one whose specified, user-visible behavior remains correct despite continuous partial failure.
+
+---
+
+## What to Read Next
+
+- **[CAP Theorem Explained](CAP-Theorem-Explained.md)** — the formal trade-off during network partitions
+- **[Consistency vs Availability](Consistency-vs-Availability.md)** — the menu of guarantees you can offer
+- **[Building LLM-Powered Systems](../15-AI-Era-Engineering/Building-LLM-Powered-Systems.md)** — AI agents as distributed workflows
 
 ---
 

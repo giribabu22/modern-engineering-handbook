@@ -2,6 +2,45 @@
 
 ---
 
+> *“Everything fails, all the time.”*
+>
+> — **Werner Vogels**, Amazon CTO, widely quoted
+
+## At a Glance
+
+> **In one sentence:** A load balancer spreads requests across many servers, removes unhealthy ones, and hides the fleet behind one address — and its algorithm, layer (L4 vs. L7), and health checks decide how evenly load spreads and how gracefully failures are handled.
+
+**You'll learn**
+
+- Round robin, least connections, weighted, hashing, and power-of-two-choices
+- Layer 4 vs. Layer 7 load balancing
+- Health checks, connection draining, and failover
+- Sticky sessions and consistent hashing
+- Global load balancing with DNS and anycast
+
+**Before you start:** [Vertical vs Horizontal Scaling](Vertical-vs-Horizontal-Scaling.md) · [HTTP, TCP/IP, and the Protocol Stack](../03-How-The-Internet-Works/HTTP-TCP-IP-and-the-Protocol-Stack.md)
+
+**Reading time:** about 30 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    C["Clients"] --> LB["Load balancer<br/>algorithm: least outstanding requests"]
+    LB --> A["Server A<br/>healthy"]
+    LB --> B["Server B<br/>healthy"]
+    LB -. "no traffic" .-> X["Server C<br/>failing health checks"]
+    HC["Health checker"] -. "probe every few seconds" .-> A
+    HC -.-> B
+    HC -.-> X
+```
+
+*A load balancer spreads requests across healthy servers and quietly stops sending traffic to any server that fails its health checks.*
+
+---
+
 ## Introduction
 
 Imagine the world's busiest airport. Tens of thousands of passengers arrive every hour, all trying to reach their gates. Without a system, there would be chaos — everyone funneling into the same security line, the same gate, the same escalator.
@@ -1061,6 +1100,122 @@ A strong answer covers:
 
 ---
 
+## Hands-On Lab
+
+Simulate four balancing strategies sending requests with very different costs to 10 servers, and compare the worst queue that builds up.
+
+```python
+import random, heapq
+random.seed(42)
+
+SERVERS, REQUESTS = 10, 50_000
+
+def simulate(pick):
+    busy_until = [0.0] * SERVERS          # when each server becomes free
+    waits = []
+    t, rr = 0.0, 0
+    for _ in range(REQUESTS):
+        t += random.expovariate(1 / 0.015)          # a new request arrives
+        cost = random.choice([0.01] * 9 + [1.0])    # 10% of requests are 100x heavier
+        s = pick(busy_until, t, rr); rr += 1
+        start = max(t, busy_until[s])
+        waits.append(start - t)
+        busy_until[s] = start + cost
+    waits.sort()
+    return f"median wait {waits[len(waits)//2]*1000:7.1f} ms   p99 wait {waits[int(len(waits)*.99)]*1000:8.1f} ms"
+
+strategies = {
+    "round robin":        lambda b, t, rr: rr % SERVERS,
+    "random":             lambda b, t, rr: random.randrange(SERVERS),
+    "power of two":       lambda b, t, rr: min(random.sample(range(SERVERS), 2), key=lambda s: b[s]),
+    "least loaded":       lambda b, t, rr: min(range(SERVERS), key=lambda s: b[s]),
+}
+for name, pick in strategies.items():
+    print(f"{name:>13}: {simulate(pick)}")
+```
+
+**What to notice**
+- Round robin and random ignore how busy each server is, so heavy requests pile up behind each other and the p99 wait explodes.
+- "Power of two choices" — look at just two random servers and pick the less busy — gets most of the benefit of checking every server, with almost no coordination. Many real load balancers use it.
+- Change the request mix to all-equal costs (`[0.01]`): the strategies converge. Load-aware balancing matters most when request costs vary.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. When does round robin work poorly?</strong></summary>
+
+When requests have very different costs or servers have different capacities. It sends equal numbers of requests, not equal amounts of work, so slow requests pile up on some servers.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is the difference between Layer 4 and Layer 7 load balancing?</strong></summary>
+
+**L4** works with TCP/UDP connections (IPs and ports) without reading the content — fast and protocol-agnostic. **L7** understands HTTP, so it can route by path, header, or cookie, terminate TLS, retry, and rewrite requests — more capable but more work per request.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What is "power of two choices"?</strong></summary>
+
+Pick two servers at random and send the request to the less loaded one. It avoids the herd behavior of always choosing the global least-loaded server and gives nearly the same balance with little shared state.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why do health checks need to be designed carefully?</strong></summary>
+
+A check that is too shallow ("process is up") keeps sending traffic to a broken server; one that is too deep ("database reachable") can mark every server unhealthy when a shared dependency blips, taking the whole service down.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What are sticky sessions, and what's the downside?</strong></summary>
+
+Routing a user to the same server every time, usually to reuse in-memory session state. Downsides: uneven load, and users lose their session when that server fails. Prefer storing sessions in a shared store.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is connection draining?</strong></summary>
+
+When removing a server (for a deploy or scale-in), the load balancer stops sending it new requests but lets in-flight requests finish before it is shut down, so no user requests are cut off.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How does consistent hashing help a load balancer?</strong></summary>
+
+It maps requests (such as cache keys or user IDs) to servers so that adding or removing a server moves only a small share of keys, keeping caches warm.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Algorithm | How it picks | Good for |
+|----------|-------------|---------|
+| Round robin | Next server in turn | Similar servers, similar requests |
+| Weighted round robin | In turn, by capacity weight | Mixed server sizes |
+| Least connections / least outstanding | Fewest active requests | Variable request cost |
+| Power of two choices | Better of two random servers | Large fleets, low coordination |
+| Hash (IP, key) / consistent hashing | Same key → same server | Caches, stickiness |
+
+| | Layer 4 | Layer 7 |
+|-|--------|--------|
+| Sees | IPs, ports, TCP/UDP | HTTP method, path, headers, cookies |
+| Can do | Fast forwarding | Routing rules, TLS termination, retries, auth |
+| Examples | AWS NLB, IPVS | Nginx, Envoy, HAProxy (HTTP mode), AWS ALB |
+
+**Don't forget:** health checks · connection draining · timeouts · retry budgets · a redundant load balancer (it can be a single point of failure too).
+
+---
+
 ## In the AI Era
 
 Load balancing LLM traffic is hard because **request cost varies by orders of magnitude.** A one-line classification and a 100-page document summary are both "one request." Round-robin can pile several giant requests onto one server while others sit idle.
@@ -1098,6 +1253,14 @@ Techniques that work better for inference:
 9. **Load balancers are critical for security.** They provide rate limiting, SSL termination, DDoS protection, and hide backend infrastructure.
 
 10. **Connection draining enables zero-downtime deployments.** Always configure it before implementing rolling updates.
+
+---
+
+## What to Read Next
+
+- **[Rate Limiting and Throttling](Rate-Limiting-and-Throttling.md)** — protecting servers the load balancer sends traffic to
+- **[How Caching Works](../05-Distributed-Systems/How-Caching-Works.md)** — why hashing requests to servers keeps caches warm
+- **[How DNS Works](../03-How-The-Internet-Works/How-DNS-Works.md)** — DNS-based global traffic routing
 
 ---
 

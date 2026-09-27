@@ -84,6 +84,22 @@ Each chapter covers:
 10. **Common interview questions** — With answers that demonstrate understanding, not memorization
 11. **Further reading** — From MIT, Stanford, Google, AWS, Cloudflare, and original papers
 
+### Built for Learning, Not Just Reading
+
+Every chapter also includes study tools, so you can check what you've learned instead of just reading:
+
+| Section | What it gives you |
+|---------|------------------|
+| **Opening quote** | A line from a pioneer of the field, with its source |
+| **At a Glance** | The chapter in one sentence, what you'll learn, prerequisites, and reading time |
+| **The Big Picture** | One diagram that shows the whole idea before the details |
+| **Hands-On Lab** | Experiments you can run on your own laptop, with the results to expect |
+| **Test Yourself** | A short quiz with click-to-reveal answers |
+| **Cheat Sheet** | The key facts and numbers on one screen, for revision and interviews |
+| **What to Read Next** | Where to go from here |
+
+**A good way to study a chapter:** read *At a Glance* and *The Big Picture* → read the chapter → run the lab → take the quiz without looking back → keep the cheat sheet for revision.
+
 ### A Note on Timelessness
 
 AI tooling changes monthly. This handbook deliberately avoids naming specific model versions, prices, or benchmark scores, which go stale quickly. It focuses on the mechanisms — tokens, context, retrieval, evaluation, injection, isolation — that will still apply when today's tools are forgotten. For current specifics, the chapters point to official documentation.

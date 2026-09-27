@@ -4,6 +4,46 @@
 
 ---
 
+> *“Everything is a file.”*
+>
+> — **A core design idea of Unix**, popularized by Unix since the 1970s
+
+## At a Glance
+
+> **In one sentence:** A file system turns a disk's raw blocks into named files and folders using inodes, directories, and free-space maps — and uses journaling or copy-on-write so that a crash doesn't leave the structure corrupted.
+
+**You'll learn**
+
+- Blocks, sectors, inodes, and directories
+- How a file path is resolved and how a write reaches the disk
+- Page cache, fsync, and what "saved" really means
+- Journaling vs. copy-on-write file systems
+- Atomic writes with temp file + rename
+- How distributed file systems and object storage differ
+
+**Before you start:** [How Operating Systems Work](../02-How-Computers-Work/How-Operating-Systems-Work.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    P["open /home/ana/notes.txt"] --> R["Root directory inode"]
+    R -- "entry: home" --> H["home directory"]
+    H -- "entry: ana" --> A["ana directory"]
+    A -- "entry: notes.txt" --> I["File inode<br/>size, owner, permissions"]
+    I --> B1[("Data block")]
+    I --> B2[("Data block")]
+    I --> B3[("Data block")]
+```
+
+*Opening a file means resolving its path one directory at a time until you reach its inode, which points to the data blocks.*
+
+---
+
 ## Introduction
 
 Imagine a self-storage facility with ten thousand identical numbered lockers and no directory listing at the front desk. Each locker can hold a fixed amount, and a large item you want to store might need to be split across several non-adjacent lockers. If the front desk didn't keep meticulous records — which locker numbers belong to "Alice's photo albums," which are free, which are part of the same original delivery — the facility would be functionally useless. You could physically walk every aisle checking every locker, but that's not a storage facility anymore, it's a treasure hunt.
@@ -684,6 +724,140 @@ Key considerations: S3 lacks HDFS's strong sequential-write and rename-based ato
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Inodes and links (macOS/Linux, or WSL/Git Bash on Windows).**
+
+```bash
+echo "hello" > original.txt
+ln original.txt hardlink.txt        # hard link: a second name for the same inode
+ln -s original.txt symlink.txt      # symbolic link: a small file containing a path
+ls -li original.txt hardlink.txt symlink.txt
+rm original.txt
+cat hardlink.txt                    # still works: the data lives until the last name is gone
+cat symlink.txt                     # fails: the path it points to no longer exists
+```
+
+In the `ls -li` output, the first column is the **inode number**. The original and the hard link share it; the symlink has its own. The number after the permissions is the **link count**.
+
+**Experiment 2 — Write files safely (any OS).**
+A crash in the middle of a normal write can leave a half-written file. The standard fix is: write to a temporary file, flush it to disk, then atomically rename it over the old one.
+
+```python
+import os, tempfile
+
+def atomic_write(path, data: bytes):
+    folder = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(dir=folder)       # same folder = same file system
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())                 # make sure the bytes reach the disk
+        os.replace(tmp, path)                    # atomic swap on the same file system
+    except BaseException:
+        os.remove(tmp)
+        raise
+
+atomic_write("config.json", b'{"version": 2}')
+print(open("config.json").read())
+```
+
+Readers of `config.json` see either the complete old version or the complete new version — never a mix. (For full durability on Linux, also `fsync` the directory after the rename.)
+
+**Experiment 3 — Many small files vs. one big file.**
+
+```python
+import os, time
+os.makedirs("many", exist_ok=True)
+t = time.perf_counter()
+for i in range(5000):
+    with open(f"many/{i}.txt", "w") as f: f.write("x" * 100)
+print(f"5000 small files: {time.perf_counter() - t:.2f} s")
+t = time.perf_counter()
+with open("one.txt", "w") as f:
+    for i in range(5000): f.write("x" * 100)
+print(f"one file, same bytes: {time.perf_counter() - t:.3f} s")
+```
+
+Same number of bytes, far more time: every file costs metadata work (an inode, a directory entry, open and close system calls). This is why storage systems batch small objects together.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What does an inode store — and what does it NOT store?</strong></summary>
+
+It stores a file's metadata: size, owner, permissions, timestamps, link count, and where its data blocks are. It does **not** store the file's name — names live in directory entries that point to inodes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is the difference between a hard link and a symbolic link?</strong></summary>
+
+A **hard link** is another directory entry pointing to the same inode; the data lives until all hard links are removed. A **symbolic link** is a separate small file containing a path; if the target is deleted or moved, the symlink breaks.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Your program called write() and got success. Is the data safe on disk?</strong></summary>
+
+Not necessarily. It may only be in the OS page cache in memory. A power loss can lose it. Call `fsync` (or equivalent) to force the data to durable storage when durability matters.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What problem does journaling solve?</strong></summary>
+
+An update to a file system touches several structures (inode, bitmap, directory, data). A crash midway could leave them inconsistent. A journal records the intended changes first, so after a crash they can be replayed or discarded quickly instead of scanning the whole disk.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. How does copy-on-write (as in ZFS and btrfs) protect data?</strong></summary>
+
+It never overwrites data in place. Changes are written to new blocks, then a pointer is switched atomically. The old version stays intact until the switch, which also makes snapshots cheap.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why is "write temp file, then rename" the standard way to update a file safely?</strong></summary>
+
+`rename` within the same file system is atomic, so readers see either the complete old file or the complete new one. Writing in place risks a half-written file if the program or machine crashes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How is object storage (like S3) different from a file system?</strong></summary>
+
+Objects are addressed by key over an HTTP API and are written whole — no in-place edits, no real directories ("folders" are key prefixes), no file locks. In exchange it scales to enormous size and durability.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Concept | Remember it as |
+|--------|---------------|
+| Block | Smallest unit the file system allocates (often 4 KB) |
+| Inode | File metadata + pointers to data blocks (not the name) |
+| Directory | A list of (name → inode) entries |
+| Page cache | OS memory cache of file data; writes land here first |
+| fsync | Force cached data to durable storage |
+| Journaling | Log changes first for fast crash recovery (ext4, NTFS, XFS) |
+| Copy-on-write | Never overwrite in place; cheap snapshots (ZFS, btrfs, APFS) |
+| Object storage | Whole objects by key over HTTP (S3, GCS, Azure Blob) |
+
+**Safe file update:** write to temp file in the same folder → flush → fsync → rename over the original → (fsync the directory on Linux).
+
+**Tools:** `ls -li` · `stat` · `df -h` (space) · `df -i` (inodes) · `du -sh` · `lsof` (open files)
+
+---
+
 ## In the AI Era
 
 File systems matter to AI in two very different ways.
@@ -713,6 +887,14 @@ File systems matter to AI in two very different ways.
 8. Distributed file systems like HDFS extend file system concepts across many machines, optimized specifically for huge, mostly-append-only files and batch access patterns.
 9. Filesystem choice has real, measurable production consequences: recovery time after a crash, small-file overhead, fragmentation behavior, and whether silent data corruption (bit rot) is even detectable.
 10. Security and correctness both depend on details easy to overlook: permission enforcement, TOCTOU race conditions around symlinks, and the fact that "deleted" data is often still physically recoverable until overwritten.
+
+---
+
+## What to Read Next
+
+- **[How Databases Work](How-Databases-Work.md)** — how databases build on (and work around) the file system
+- **[Backup, Recovery, and Durability](Backup-Recovery-and-Durability.md)** — keeping data safe beyond a single disk
+- **[How Memory Works](../02-How-Computers-Work/How-Memory-Works.md)** — the page cache and memory mapping
 
 ---
 

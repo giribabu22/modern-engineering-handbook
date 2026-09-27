@@ -4,6 +4,45 @@
 
 ---
 
+> *“The hottest new programming language is English.”*
+>
+> — **Andrej Karpathy**, post on X (Twitter), January 2023
+
+## At a Glance
+
+> **In one sentence:** A large language model is a function that predicts the next token from the tokens it has seen, repeated one token at a time — so its cost, speed, memory, knowledge, and failure modes all follow from tokens, the context window, and probabilistic sampling.
+
+**You'll learn**
+
+- Tokens and why everything is measured in them
+- Next-token prediction, training, and post-training
+- The context window as the model's entire working memory
+- Temperature and sampling
+- Prefill vs. decode, and the KV cache
+- Tool calling, and why models hallucinate
+
+**Before you start:** [How Memory Works](../02-How-Computers-Work/How-Memory-Works.md) · [How To Think Like An Engineer](../01-Foundations/How-To-Think-Like-An-Engineer.md)
+
+**Reading time:** about 15 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    TXT["Prompt text"] --> TOK["Tokenizer<br/>text to token IDs"]
+    TOK --> MOD["Transformer<br/>scores every possible<br/>next token"]
+    MOD --> SAM["Sampler<br/>temperature, top-p"]
+    SAM --> NEW["Next token"]
+    NEW -- "append and repeat" --> MOD
+    NEW --> OUT["Output text"]
+```
+
+*Text becomes tokens, the model predicts a probability for every possible next token, one is sampled and appended — and the loop repeats.*
+
+---
+
 ## Introduction
 
 Two engineers are each asked to add an AI feature that summarizes customer support tickets.
@@ -406,6 +445,128 @@ Mostly, for cooperative inputs. Not as a security boundary. Enforce hard rules i
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — How temperature changes the next-token choice.**
+A model outputs a score (logit) for every possible next token. Temperature reshapes those scores before sampling. Pure Python, no installs:
+
+```python
+import math
+
+logits = {"Paris": 5.0, "Lyon": 2.5, "London": 2.0, "banana": -1.0}   # "The capital of France is ..."
+
+def probabilities(temperature):
+    exps = {tok: math.exp(score / temperature) for tok, score in logits.items()}
+    total = sum(exps.values())
+    return {tok: e / total for tok, e in exps.items()}
+
+for t in [0.2, 1.0, 2.0]:
+    print(f"T={t}: " + "  ".join(f"{tok} {p:6.1%}" for tok, p in probabilities(t).items()))
+```
+
+Low temperature makes the top token nearly certain; high temperature gives unlikely tokens (even "banana") a real chance. That is the whole mechanism behind "creative" versus "predictable" settings.
+
+**Experiment 2 — Count tokens (and see why language matters).**
+Install a real tokenizer with `pip install tiktoken` (it downloads its vocabulary on first use), then:
+
+```python
+import tiktoken
+enc = tiktoken.get_encoding("o200k_base")
+
+samples = {
+    "English": "The quick brown fox jumps over the lazy dog.",
+    "Hindi":   "तेज़ भूरी लोमड़ी आलसी कुत्ते के ऊपर कूदती है।",
+    "Code":    "for (let i = 0; i < items.length; i++) { total += items[i].price; }",
+    "Number":  "3.14159265358979323846",
+}
+for name, text in samples.items():
+    tokens = enc.encode(text)
+    print(f"{name:8} {len(text):3} chars -> {len(tokens):3} tokens   {[enc.decode([t]) for t in tokens[:8]]}")
+```
+
+Look at how words are split into pieces, and compare tokens per character across languages. Since pricing, speed, and context limits are all counted in tokens, the same content can cost different amounts. (Different model families use different tokenizers; the idea is the same.)
+
+**Experiment 3 — Budget a context window.**
+Pick a model you use and look up its context window in its documentation. Estimate how many tokens your system prompt, tool definitions, retrieved documents, conversation history, and answer need. What gets cut first when a conversation grows long?
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Does a model learn from your conversation while you use it?</strong></summary>
+
+No. Its weights are fixed after training. Within a conversation it only "knows" what's in the context window; anything that seems remembered across conversations is supplied by the application (for example, stored notes re-inserted into the prompt).
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why does the same prompt sometimes produce different answers?</strong></summary>
+
+The model outputs probabilities and a sampler picks tokens from them. Temperature above zero adds deliberate randomness, and even at zero, serving infrastructure can introduce small numerical differences.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What limits how much text a model can consider at once?</strong></summary>
+
+The **context window** — a maximum number of tokens covering the prompt and the output together. Anything beyond it is invisible to the model.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why is time to first token different from total response time?</strong></summary>
+
+The prompt is processed in parallel first (prefill), which determines time to first token. Output is then generated one token at a time (decode), so total time grows with the length of the answer.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What does a model actually do when it "uses a tool"?</strong></summary>
+
+It outputs a structured request (tool name and arguments). The application's code executes the tool and returns the result into the context. The model never runs anything itself — your code decides what's allowed.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why do hallucinations happen?</strong></summary>
+
+The model generates plausible continuations, and plausible isn't the same as true. When it lacks the information, a confident-sounding fabrication can be the most plausible text.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. In what order should you try to improve an LLM feature's quality?</strong></summary>
+
+Better prompt → better context (retrieval) → tools → a more capable model → fine-tuning. Earlier steps are cheaper and faster to iterate.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Term | Meaning |
+|-----|--------|
+| Token | Unit of text the model reads and writes (word or word piece) |
+| Context window | Max tokens of input + output per request |
+| Temperature | Randomness of token choice (low = predictable) |
+| Prefill | Processing the prompt → time to first token |
+| Decode | Generating output token by token → tokens per second |
+| KV cache | Stored attention state to avoid recomputation |
+| Prompt caching | Reusing processed prompt prefixes across requests |
+| Tool calling | Model requests a function call; your code runs it |
+| Embedding | Vector representing meaning, for search and similarity |
+| Hallucination | Fluent, confident, false output |
+
+**Cost estimate:** requests × (input tokens × input price + output tokens × output price).
+
+**Engineering rules:** validate every output · cap output length and check for truncation · pin model versions · test on datasets, not single examples · enforce rules in code, not prompts.
+
+---
+
 ## Key Takeaways
 
 1. An LLM is a next-token predictor: a function from a token sequence to a probability distribution over the next token, applied repeatedly.
@@ -416,6 +577,14 @@ Mostly, for cooperative inputs. Not as a security boundary. Enforce hard rules i
 6. Models call tools by emitting structured requests; your code executes them and therefore owns the permissions.
 7. The model cannot reliably distinguish instructions from data — the root cause of prompt injection.
 8. Improve quality in order: prompt, context, tools, model, and only then fine-tuning.
+
+---
+
+## What to Read Next
+
+- **[Building LLM-Powered Systems](Building-LLM-Powered-Systems.md)** — turning the model into a reliable product
+- **[Engineering With AI Assistants](Engineering-With-AI-Assistants.md)** — using LLMs well in your own daily work
+- **[The Memory Hierarchy Explained](../02-How-Computers-Work/The-Memory-Hierarchy-Explained.md)** — why inference speed is about memory bandwidth
 
 ---
 

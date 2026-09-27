@@ -4,6 +4,43 @@
 
 ---
 
+> *“Software is eating the world.”*
+>
+> — **Marc Andreessen**, essay in *The Wall Street Journal*, 2011
+
+## At a Glance
+
+> **In one sentence:** Software exists to encode decisions so machines can make them repeatedly, cheaply, and at scale — and that simple idea explains most of what makes software engineering powerful and hard.
+
+**You'll learn**
+
+- What problem software actually solves, and why it spread into every industry
+- The key milestones from Jacquard's loom to "software is eating the world"
+- Why near-zero marginal cost and malleability make software unlike other engineering
+- How to turn an ambiguous business rule into precise code
+- When software is — and is not — the right answer
+
+**Before you start:** None — you can start here.
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    A["Business rule<br/>(in someone's head)"] --> B["Precise specification<br/>(every ambiguity decided)"]
+    B --> C["Code"]
+    C --> D["Runs millions of times<br/>at near-zero cost"]
+    D --> E["Feedback:<br/>bugs and new needs"]
+    E --> B
+```
+
+*Software turns a human decision into a precise rule a machine can repeat millions of times — and every run teaches you something that feeds back into the rule.*
+
+---
+
 ## Introduction
 
 In 1843, Ada Lovelace wrote a set of notes about a machine that didn't exist yet — Charles Babbage's Analytical Engine, a mechanical computer made of brass gears that was never fully built in his lifetime. In those notes, Lovelace described something no one had articulated before: that such a machine could do more than arithmetic. If you could represent anything — music, images, language — as symbols following formal rules, the machine could manipulate those symbols too. She wrote that the Engine "might act upon other things besides number... the engine might compose elaborate and scientific pieces of music of any degree of complexity or extent." She had described software before there was hardware capable of running it.
@@ -503,6 +540,76 @@ Largely manufacturing precision and, later, a suitable underlying technology. Ba
 
 ---
 
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What does it mean to say software is "automated decision-making"?</strong></summary>
+
+A program captures rules ("if the order is over $50, shipping is free") so that a machine can apply them consistently, instantly, and millions of times — decisions that previously needed a person each time.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why does software scale so differently from a physical business?</strong></summary>
+
+Its **marginal cost** — the cost to serve one more user — is close to zero. Copying software and running it for one more customer costs a tiny fraction of building it, while a restaurant or factory must add staff, space, and materials for each new customer.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What was the stored-program concept, and why did it matter?</strong></summary>
+
+Associated with John von Neumann (1945): instructions are stored in the same memory as data. The machine can be reprogrammed by loading new instructions instead of rewiring hardware — which is what made general-purpose software possible.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. "Loyal customers get free shipping." Why can't you code this rule as written?</strong></summary>
+
+It's ambiguous. You must decide what "loyal" means (orders? spend? time?), over what period, whether returns count, which regions and products apply, and what happens at the boundary. Formalizing forces those decisions to be made explicitly.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Software is easy to change. Why is that both a strength and a danger?</strong></summary>
+
+Malleability lets you fix and improve quickly, but without discipline (tests, clear boundaries, documentation) every change adds complexity until the codebase becomes slow and risky to change.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is "blast radius" and why is it larger for software?</strong></summary>
+
+The scope of damage a mistake can cause. Because one piece of code runs for every user at once, a single bug can affect millions of people instantly — so staged rollouts, feature flags, and monitoring matter.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Give one situation where software is NOT the right answer.</strong></summary>
+
+When the process is rare, changes constantly, depends on human judgment, or isn't understood yet. Automating a process nobody can define clearly just makes the confusion faster. Sometimes a spreadsheet, checklist, or conversation is better.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Idea | Remember it as |
+|------|---------------|
+| What software is | Decisions written down precisely enough for a machine to repeat |
+| Why it spreads | Near-zero marginal cost + instant global distribution |
+| Why it's hard | It's malleable, invisible, and complexity grows with every change |
+| Formalizing a rule | Every ambiguity must become an explicit decision |
+| Blast radius | One bug can reach every user at once — roll out gradually |
+| Right tool? | Automate processes that are repeated, well-understood, and stable |
+
+**Key dates:** 1801 Jacquard loom · 1843 Ada Lovelace's notes · 1936 Turing machine · 1945 stored-program concept · 1968 "software engineering" coined at NATO conference · 2011 "software is eating the world"
+
+---
+
 ## In the AI Era
 
 Software has always existed to encode decisions so a machine can make them repeatedly, cheaply, and without getting tired. Large language models (LLMs) push that story one step further: for the first time, a meaningful share of the *writing* of software can itself be automated.
@@ -536,6 +643,14 @@ That changes where the cost of software lives — not whether software is needed
 8. Invisible complexity is why practices like code review, automated testing, and monitoring exist — they exist specifically to compensate for the fact that software's complexity, unlike a bridge's, cannot be seen by inspection.
 9. Marc Andreessen's "software is eating the world" thesis (2011) is a direct consequence of these economic properties: industries built on physical infrastructure and labor are structurally vulnerable to reimplementation as software.
 10. Not every process should become software — a framework assessing repetition, specifiability, rate of change, stakes, and scale helps engineers decide when formalizing a process into software is actually the right investment.
+
+---
+
+## What to Read Next
+
+- **[How To Think Like An Engineer](How-To-Think-Like-An-Engineer.md)** — the mindset for making good decisions once you're building software
+- **[How To Solve Problems Systematically](How-To-Solve-Problems-Systematically.md)** — a repeatable method for the problems software creates
+- **[What Happens When You Press A Key](../02-How-Computers-Work/What-Happens-When-You-Press-A-Key.md)** — see what the machine does with the instructions you write
 
 ---
 

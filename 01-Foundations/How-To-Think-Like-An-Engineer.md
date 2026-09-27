@@ -4,6 +4,46 @@
 
 ---
 
+> *“The first principle is that you must not fool yourself — and you are the easiest person to fool.”*
+>
+> — **Richard Feynman**, "Cargo Cult Science," Caltech commencement address, 1974
+
+## At a Glance
+
+> **In one sentence:** Thinking like an engineer means reasoning from first principles, seeing the whole system, anticipating second-order effects, and testing ideas instead of trusting them.
+
+**You'll learn**
+
+- First-principles thinking versus reasoning by analogy
+- Systems thinking and feedback loops
+- How to spot second-order effects before they bite
+- The difference between code that works and code that is correct
+- How to debug with the scientific method
+- How to match the depth of analysis to the stakes of a decision
+
+**Before you start:** [Why Software Exists](Why-Software-Exists.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TD
+    P["A decision or a bug"] --> F["First principles:<br/>what is actually true?"]
+    F --> S["Systems thinking:<br/>what else does it touch?"]
+    S --> O["Second-order effects:<br/>and then what?"]
+    O --> H["Falsifiable hypothesis"]
+    H --> X{"Does an experiment<br/>disprove it?"}
+    X -- "yes" --> F
+    X -- "no, the evidence holds" --> D["Decide, and write down why"]
+```
+
+*Engineering thinking is a loop: reason from what is true, look at the whole system, ask "and then what?", and let experiments — not confidence — decide.*
+
+---
+
 ## Introduction
 
 A junior developer and a senior engineer are both handed the same bug report: "Checkout is slow for some users." The junior developer opens the checkout code, notices a database query inside a loop, moves it outside the loop, and ships the fix. Checkout is now faster. Ticket closed.
@@ -527,6 +567,76 @@ Yes, and it's a real failure mode — sometimes called "reinventing the wheel, b
 
 ---
 
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is the difference between first-principles reasoning and reasoning by analogy?</strong></summary>
+
+Analogy says "company X does this, so we should too." First principles asks "what are our actual constraints, and what follows from them?" Analogy is fast and often fine; first principles is needed when your situation genuinely differs.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Adding automatic retries to a failing API call — name a second-order effect.</strong></summary>
+
+If the downstream service is failing because it's overloaded, every client retrying multiplies its load, turning a slowdown into an outage (a **retry storm**). Backoff with jitter and circuit breakers exist to prevent this.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Your function passes every test you wrote. Is it correct?</strong></summary>
+
+Not necessarily. It *works* for the cases you tested. It is *correct* only if it behaves as intended for all valid inputs and conditions — empty inputs, duplicates, concurrency, large sizes, failures. Passing tests shows the absence of bugs you looked for, not all bugs.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What makes a debugging hypothesis "falsifiable"?</strong></summary>
+
+It makes a specific prediction that an experiment could prove wrong — e.g., "the timeout happens only when the cart has more than 50 items." "Something is off with the database" can't be disproven, so it can't guide an experiment.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. State Brooks's Law and the reason behind it.</strong></summary>
+
+"Adding manpower to a late software project makes it later" (Fred Brooks, *The Mythical Man-Month*). New people need ramp-up time from existing team members, and communication paths grow roughly with the square of team size.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is a one-way-door vs. two-way-door decision?</strong></summary>
+
+A two-way door is easy to reverse (a library for an internal tool) — decide quickly. A one-way door is expensive to reverse (a core data model, a public API) — slow down, gather evidence, and document the tradeoffs.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Why is systems thinking needed to understand a single component?</strong></summary>
+
+Components interact through feedback loops. A cache, for example, changes database load, which changes latency, which changes user behavior. Looking at a component in isolation misses the effects that cause most real incidents.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Habit | Question to ask yourself |
+|-------|-------------------------|
+| First principles | "What do I actually know to be true here?" |
+| Systems thinking | "What else does this component touch?" |
+| Second-order effects | "And then what happens?" (ask it twice) |
+| Works vs. correct | "What input or condition haven't I tried?" |
+| Scientific debugging | "What experiment would prove my guess wrong?" |
+| Calibrated rigor | "How costly is this decision to reverse?" |
+
+**Decision checklist:** state the problem → list constraints → list at least two options → name the tradeoffs → consider second-order effects → decide → write down why.
+
+---
+
 ## In the AI Era
 
 AI assistants are extraordinarily good at producing answers that *look* right. That makes the habits in this chapter more valuable, not less.
@@ -565,6 +675,14 @@ A practical checklist before accepting AI-generated work:
 8. The engineering mindset is expensive per-decision but transferable across technologies — unlike specific technical skills, it doesn't expire when a framework or language falls out of fashion.
 9. Not every decision warrants the same rigor — matching the depth of analysis to the stakes and reversibility of a decision is itself a mark of good engineering judgment.
 10. Organizations scale this mindset by embedding it into process (postmortems, design docs, code review norms), not by relying on a handful of individually strong engineers to catch every second-order effect.
+
+---
+
+## What to Read Next
+
+- **[How To Solve Problems Systematically](How-To-Solve-Problems-Systematically.md)** — turns this mindset into a step-by-step method
+- **[Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)** — second-order effects at their most dramatic
+- **[Engineering With AI Assistants](../15-AI-Era-Engineering/Engineering-With-AI-Assistants.md)** — applying "works vs. correct" to AI-generated code
 
 ---
 

@@ -4,6 +4,45 @@
 
 ---
 
+> *“Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?”*
+>
+> — **Brian Kernighan**, *The Elements of Programming Style* (with P. J. Plauger), 2nd edition, 1978
+
+## At a Glance
+
+> **In one sentence:** Systematic problem solving replaces guessing with a repeatable loop: understand the problem precisely, reproduce it, form testable hypotheses, narrow down with experiments, fix the root cause, and capture what you learned.
+
+**You'll learn**
+
+- Pólya's four phases adapted for software
+- How to decompose a large, vague problem into solvable pieces
+- Working backwards from symptoms to root cause
+- Bisection (including git bisect) to find bugs in logarithmic time
+- Rubber duck debugging and when to ask for help
+
+**Before you start:** [How To Think Like An Engineer](How-To-Think-Like-An-Engineer.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    U["1. Understand<br/>precise problem statement"] --> R["2. Reproduce<br/>smallest reliable case"]
+    R --> H["3. Hypothesize<br/>several testable causes"]
+    H --> N["4. Narrow down<br/>bisect code, inputs, time"]
+    N --> F["5. Fix the root cause"]
+    F --> V["6. Verify<br/>add a regression test"]
+    V --> L["7. Look back<br/>share and prevent"]
+    N -. "hypothesis was wrong" .-> H
+```
+
+*Systematic problem solving is a loop with checkpoints — and when an experiment disproves a hypothesis, you go back and form a better one instead of guessing.*
+
+---
+
 ## Introduction
 
 It's 2 AM. A production payment service is throwing intermittent errors — maybe one request in every few hundred. The on-call engineer, Sam, has three options for how to spend the next hour. Option one: stare at the code that "seems related," making small changes and redeploying, hoping something sticks. Option two: escalate immediately, waking up three more engineers who now duplicate Sam's confusion. Option three: follow a method.
@@ -545,6 +584,84 @@ Yes, with adaptation — decomposition and precise problem-statement-writing app
 
 ---
 
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What are Pólya's four phases of problem solving?</strong></summary>
+
+1. **Understand** the problem.
+2. **Devise a plan.**
+3. **Carry out** the plan.
+4. **Look back** — check the result and learn from it.
+
+In software, "look back" includes tests, postmortems, and sharing the fix.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. You have 1,000 commits: the first works, the last is broken. At most how many tests does bisection need?</strong></summary>
+
+About **10**, because 2¹⁰ = 1,024. Each test halves the remaining range. `git bisect` automates exactly this.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why is reproducing a bug so important before fixing it?</strong></summary>
+
+Without a reliable reproduction, you can't confirm the cause or verify that your fix works. "It stopped happening" might just mean the conditions changed. A reproduction also becomes a regression test.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is the difference between a symptom and a root cause?</strong></summary>
+
+A symptom is what you observe ("checkout times out"). A root cause is the underlying mechanism that produces it ("an N+1 query that only appears with more than 50 cart items"). Fixing symptoms makes problems return; fixing root causes makes them go away.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why does rubber duck debugging work?</strong></summary>
+
+Explaining code line by line forces you to state assumptions you had been skipping over. The mismatch between what you *say* the code does and what it *actually* does often reveals the bug — no duck (or person) needs to reply.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. When should you ask for help instead of continuing alone?</strong></summary>
+
+When you've stopped making progress (no new hypotheses or evidence for a set period), when the problem is in an area someone else knows well, or when the impact is high and time matters. Bring a precise summary of what you've tried.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What does "decomposing along the wrong boundary" mean?</strong></summary>
+
+Splitting a problem in a way that doesn't match where the cause could be — e.g., investigating frontend vs. backend when the real split is "large files vs. small files." Good decomposition follows the evidence, not the org chart.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Step | Do this | Avoid this |
+|------|--------|-----------|
+| 1. Understand | Write a precise problem statement with exact symptoms | "It's slow sometimes" |
+| 2. Reproduce | Find the smallest reliable reproduction | Fixing what you can't see |
+| 3. Hypothesize | List several falsifiable causes | Anchoring on the first idea |
+| 4. Narrow down | Bisect: code, commits, inputs, time | Changing many things at once |
+| 5. Fix | Address the root cause | Suppressing the symptom |
+| 6. Verify | Add a regression test; confirm in real conditions | "Works on my machine" |
+| 7. Look back | Document, share, fix similar spots | Moving on without learning |
+
+**Bisection math:** N possibilities → about log₂(N) tests. 1,000 → 10 · 1,000,000 → 20.
+
+**Useful tools:** `git bisect`, debuggers, logging with request IDs, feature flags, minimal test cases.
+
+---
+
 ## In the AI Era
 
 A systematic process is the difference between using AI as an accelerator and using it as a slot machine ("regenerate until something works").
@@ -589,6 +706,14 @@ Notice what this prompt does: it forces precision about the symptom, records evi
 8. Knowing when to escalate is part of the method, not a failure of it — a precise problem statement and a record of ruled-out hypotheses make for a much higher-value request for help.
 9. The "look back" phase — verifying root cause, not just symptom disappearance, and capturing reusable insight — is the most commonly skipped step, and its absence is why the same bugs recur across a codebase or a team's history.
 10. This method is domain-independent and durable: the same four phases apply to debugging a race condition, decomposing a vague product requirement, or evaluating an architecture decision.
+
+---
+
+## What to Read Next
+
+- **[What Happens When You Press A Key](../02-How-Computers-Work/What-Happens-When-You-Press-A-Key.md)** — start learning the machine you'll be debugging
+- **[Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)** — where the hardest bugs to reproduce come from
+- **[Evaluating AI Systems](../15-AI-Era-Engineering/Evaluating-AI-Systems.md)** — systematic problem solving for software that isn't deterministic
 
 ---
 

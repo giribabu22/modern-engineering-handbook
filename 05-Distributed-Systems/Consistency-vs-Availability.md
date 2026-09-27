@@ -4,6 +4,40 @@
 
 ---
 
+> *“The concept of time is fundamental to our way of thinking. It is derived from the more basic concept of the order in which events occur.”*
+>
+> — **Leslie Lamport**, "Time, Clocks, and the Ordering of Events in a Distributed System," 1978
+
+## At a Glance
+
+> **In one sentence:** Consistency is a spectrum, from linearizability (the system behaves like one up-to-date copy) through causal and session guarantees down to eventual consistency — and each step down buys more availability and lower latency at the cost of anomalies users might see.
+
+**You'll learn**
+
+- Linearizability, sequential, causal, and eventual consistency
+- Session guarantees: read-your-writes, monotonic reads, and more
+- The anomalies each model allows, with concrete examples
+- Tunable consistency and quorums
+- How to choose a consistency level per feature, not per system
+
+**Before you start:** [CAP Theorem Explained](CAP-Theorem-Explained.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    L["Linearizable<br/>(strongest)"] --> S["Sequential"] --> C["Causal"] --> SG["Session guarantees<br/>read-your-writes,<br/>monotonic reads"] --> E["Eventual<br/>(weakest)"]
+    L -. "more coordination, higher latency" .- E
+```
+
+*Consistency models form a spectrum: the stronger the guarantee, the more coordination — and latency — it costs.*
+
+---
+
 ## Introduction
 
 Imagine a group chat with three friends — Maya, Josh, and Priya — spread across three cities. Maya sends a message: "Let's meet at 6pm." A moment later, Josh replies "sounds good" — but what if Josh's phone hadn't yet received Maya's message, and he's replying to something else entirely? Now imagine Priya, opening the chat five minutes later, sees Josh's reply *before* Maya's original message, because of how the messages happened to sync to her device. The conversation reads as nonsense, even though every individual message was delivered correctly.
@@ -731,6 +765,113 @@ I'd start by auditing the system's data types and explicitly classifying each by
 
 ---
 
+## Hands-On Lab
+
+Simulate three replicas with different replication lag, and see which consistency anomalies users experience.
+
+```python
+log = []                          # the leader's ordered list of writes
+lags = [0, 2, 5]                  # replica i is missing the last lags[i] writes
+
+def replica_state(i):
+    visible = log[: max(0, len(log) - lags[i])]
+    return visible[-1] if visible else None
+
+for v in range(1, 11):
+    log.append(f"v{v}")
+
+# 1) Read-your-writes violation: you write, then the load balancer sends your read to replica 2
+log.append("my_update")
+print("wrote my_update, read from replica 2 ->", replica_state(2))
+
+# 2) Monotonic reads violation: two reads in a row from different replicas
+first, second = replica_state(0), replica_state(2)
+print("first read:", first, " second read:", second, " (went back in time!)")
+
+# 3) The fix for both: stick a user's session to one replica (or to the leader)
+sticky = 0
+print("sticky reads:", replica_state(sticky), replica_state(sticky))
+```
+
+**What to notice**
+- With eventual consistency, a user can fail to see their own write and see data "move backwards" between two page loads — even though every replica will eventually agree.
+- Session guarantees (read-your-writes, monotonic reads) fix what users notice without paying for strong consistency everywhere.
+- Change `lags` to `[0, 0, 0]`: every anomaly disappears — that is what strong consistency costs you latency and availability to provide.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What does linearizability guarantee?</strong></summary>
+
+Every operation appears to take effect instantly at some point between its start and end, and all clients see the same single order. Once a write completes, every later read — from any client — sees it.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is eventual consistency?</strong></summary>
+
+If no new writes happen, all replicas will eventually converge to the same value. It says nothing about *when*, or what reads return in the meantime.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What does causal consistency add over eventual consistency?</strong></summary>
+
+Operations that are causally related are seen in the same order by everyone. A reply is never visible before the message it replies to. Unrelated operations may still be seen in different orders.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Which session guarantee prevents "I posted a comment and it disappeared when I refreshed"?</strong></summary>
+
+**Read-your-writes**: a user always sees their own earlier writes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Which guarantee prevents data from appearing to go back in time between two page loads?</strong></summary>
+
+**Monotonic reads**: once you've seen a value, later reads never return an older one. Often implemented by keeping a user's reads on the same replica.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why not make everything strongly consistent?</strong></summary>
+
+Strong consistency requires coordination between replicas on every operation, which adds latency (especially across regions) and means some requests must fail during partitions. Many features don't need it.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How should you choose a consistency level?</strong></summary>
+
+Per operation, based on the cost of an anomaly: strong for money movement, uniqueness, and inventory; session guarantees for user-facing profile and content edits; eventual for counters, feeds, analytics, and recommendations.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Model | Guarantee | Example anomaly it prevents |
+|------|----------|----------------------------|
+| Linearizable (strong) | One up-to-date copy, real-time order | Two users both buying the last ticket |
+| Sequential | One order everyone agrees on (not tied to real time) | Clients disagreeing on the order of updates |
+| Causal | Cause is seen before effect | Reply visible before the question |
+| Read-your-writes | You see your own writes | "My update vanished" |
+| Monotonic reads | Never see older data after newer | Data going back in time |
+| Eventual | Replicas converge eventually | Only permanent divergence |
+
+**Cost direction:** stronger ⟶ more coordination ⟶ higher latency, lower availability. Weaker ⟶ faster and more available ⟶ more anomalies to handle in the application.
+
+**Quorum rule:** with N replicas, W + R > N means reads see the latest acknowledged write.
+
+---
+
 ## In the AI Era
 
 AI products surface consistency anomalies to users in very visible ways.
@@ -757,6 +898,14 @@ AI products surface consistency anomalies to users in very visible ways.
 8. **Most real systems mix models by data type**, not by database — pick the weakest model that's still safe for each specific piece of data, rather than one setting for everything.
 9. **A database's advertised consistency guarantee is a claim to verify, not a fact to assume** — Jepsen-style empirical testing under real partitions has repeatedly found gaps between documentation and actual behavior.
 10. **Last-write-wins based on client timestamps is a common, dangerous anti-pattern** — prefer server-assigned versioning, vector clocks, or domain-aware merge functions (like union for a shopping cart) over trusting client clocks.
+
+---
+
+## What to Read Next
+
+- **[Data Replication Strategies](../04-Data-And-Storage/Data-Replication-Strategies.md)** — where these anomalies come from
+- **[How Caching Works](How-Caching-Works.md)** — caches as the most common source of stale reads
+- **[Database Sharding](../08-Scalability/Database-Sharding.md)** — consistency across shards
 
 ---
 

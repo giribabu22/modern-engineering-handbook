@@ -4,6 +4,44 @@
 
 ---
 
+> *“Be conservative in what you do, be liberal in what you accept from others.”*
+>
+> — **Jon Postel**, the "robustness principle," RFC 761, 1980
+
+## At a Glance
+
+> **In one sentence:** The internet is a network of independently run networks that agree on a few protocols — IP addresses to name destinations, routers to forward packets hop by hop, and BGP for networks to tell each other which addresses they can reach.
+
+**You'll learn**
+
+- How data is split into packets and routed hop by hop
+- IP addresses, IPv4 vs. IPv6, and NAT
+- Autonomous systems, BGP, and how networks exchange routes
+- The physical internet: fiber, undersea cables, exchange points, data centers
+- Why latency is bounded by the speed of light
+- How routing mistakes and BGP hijacks cause outages
+
+**Before you start:** [Why Software Exists](../01-Foundations/Why-Software-Exists.md)
+
+**Reading time:** about 45 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    Y["Your laptop<br/>private address"] --> H["Home router<br/>(NAT)"]
+    H --> ISP["Your internet provider<br/>(autonomous system)"]
+    ISP -- "routes learned via BGP" --> IX["Exchange point<br/>or transit network"]
+    IX --> DN["Destination network<br/>(autonomous system)"]
+    DN --> S["Server"]
+```
+
+*Your packets travel through networks run by different organizations, which use BGP to tell each other which addresses they can reach.*
+
+---
+
 ## Introduction
 
 Imagine the postal system, but nobody runs it. There is no global postmaster. Instead, thousands of independent shipping companies — some local, some national, some intercontinental — each agree to hand off packages to each other at specific meeting points, following a shared set of addressing rules. A letter from a small-town post office in Ohio to an office in Tokyo might pass through five or six different carriers, each one only responsible for its own leg of the journey, none of them ever having a global map of the whole system. Somehow, it arrives in seconds.
@@ -972,6 +1010,101 @@ A strong answer should explain that standard BGP-based public internet routing p
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Measure round-trip time.**
+Run `ping -c 5 wikipedia.org` (macOS/Linux) or `ping wikipedia.org` (Windows). Note the average time in milliseconds. Then ping a site hosted on another continent and compare.
+
+**Experiment 2 — See the path your packets take.**
+Run `traceroute wikipedia.org` (macOS/Linux) or `tracert wikipedia.org` (Windows). Each line is one router hop. Look for:
+- the first hop (your home router or office gateway),
+- your internet provider's routers (names often contain the provider's domain),
+- a big jump in latency — often where the path crosses a long distance, such as an ocean.
+Rows of `* * *` just mean that router doesn't answer these probes; it is still forwarding your traffic.
+
+**Experiment 3 — Check the speed of light.**
+Look up the distance from your city to the server location you pinged (for example, about 5,600 km from London to New York). Light in fiber covers roughly 200 km per millisecond, so the best possible round trip is `2 × distance ÷ 200` ms. Compare with your measured ping: the difference is routing detours, queues, and processing.
+
+**Experiment 4 — Your address vs. your public address.**
+Run `ipconfig` (Windows) or `ip addr` / `ifconfig` (Linux/macOS). Your computer probably has a private address like `192.168.x.x` or `10.x.x.x`. Search "what is my IP" in a browser to see your public address. The difference is **NAT**: your router shares one public address among all your devices.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why does the internet split data into packets instead of using a dedicated circuit per conversation?</strong></summary>
+
+Packet switching shares links among many conversations and routes around failures. Circuits reserve capacity even when idle. Packets use the network far more efficiently and keep working when some links go down.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is an autonomous system (AS)?</strong></summary>
+
+A network run by one organization under a single routing policy — an ISP, a cloud provider, a university — identified by an AS number. The internet is tens of thousands of autonomous systems connected together.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What does BGP do?</strong></summary>
+
+The Border Gateway Protocol lets autonomous systems announce which IP address ranges they can reach and choose paths to every destination. It is the routing system *between* networks.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why is IPv6 needed, and what is NAT?</strong></summary>
+
+IPv4 has about 4.3 billion addresses — not enough for every device. NAT lets many devices share one public IPv4 address by rewriting addresses at the router. IPv6's 128-bit addresses remove the shortage and allow every device a globally unique address.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is the minimum round-trip time between two points 6,000 km apart over fiber?</strong></summary>
+
+Light travels about 200 km per millisecond in fiber. One way takes 30 ms, so the round trip is at least **60 ms** — before any routing detours, queuing, or processing. No software optimization can beat it; only moving closer (CDNs, edge servers) can.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. How can a BGP mistake take a large service offline?</strong></summary>
+
+If a network withdraws its route announcements (or announces wrong ones), other networks no longer know how to reach its addresses, so traffic stops arriving or goes to the wrong place. In the October 2021 Facebook outage, a faulty configuration change cut off Facebook's backbone; its DNS servers then withdrew their BGP routes, so the rest of the internet could no longer find Facebook at all.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What is an Internet Exchange Point (IXP)?</strong></summary>
+
+A physical location where many networks connect to exchange traffic directly (peering), instead of paying a transit provider to carry it. IXPs make the internet faster and cheaper.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Term | Meaning |
+|------|--------|
+| Packet | A small chunk of data with source and destination addresses |
+| Router | Forwards packets one hop closer to their destination |
+| IP address | Network location of a device (IPv4: 32-bit, IPv6: 128-bit) |
+| NAT | Many private addresses share one public address |
+| Autonomous system (AS) | One organization's network, with an AS number |
+| BGP | How autonomous systems exchange routes |
+| IXP | Place where networks peer and exchange traffic |
+| Anycast | Same IP announced from many locations; nearest one answers |
+| CDN | Servers near users to reduce distance and load |
+
+**Latency rule of thumb:** fiber ≈ 200 km per ms one way · same city < 5 ms · across a continent ~30–70 ms · across an ocean ~70–150 ms round trip.
+
+**Tools:** `ping` · `traceroute` / `tracert` · `mtr` (Linux) · `ipconfig` / `ip addr`
+
+---
+
 ## In the AI Era
 
 AI traffic inverts the usual shape of internet workloads.
@@ -1008,6 +1141,14 @@ Consequences:
 9. **CIDR and route aggregation are what keep the internet's routing table manageable** as the network grows from thousands to billions of connected devices — without them, global routers would be overwhelmed by table size.
 
 10. **Redundancy must be architecturally real, not just labeled** — "multi-AZ" and "multi-region" only provide actual resilience if the underlying physical infrastructure (power, network, submarine cables) truly doesn't share a single point of failure.
+
+---
+
+## What to Read Next
+
+- **[HTTP, TCP/IP, and the Protocol Stack](HTTP-TCP-IP-and-the-Protocol-Stack.md)** — the protocols that ride on top of routing
+- **[How DNS Works](How-DNS-Works.md)** — how names become the IP addresses routers understand
+- **[How Load Balancing Works](../08-Scalability/How-Load-Balancing-Works.md)** — anycast and traffic distribution at scale
 
 ---
 

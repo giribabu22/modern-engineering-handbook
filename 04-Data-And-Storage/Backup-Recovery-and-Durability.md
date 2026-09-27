@@ -4,6 +4,45 @@
 
 ---
 
+> *“Hope is not a strategy.”*
+>
+> — **Traditional SRE saying**, opening line of Google's *Site Reliability Engineering* book, 2016
+
+## At a Glance
+
+> **In one sentence:** Durability means data survives failures; backups mean you can recover from mistakes, corruption, and attacks that replication faithfully copies — and a backup only counts if you have regularly proven you can restore it within your RPO and RTO.
+
+**You'll learn**
+
+- What durability actually guarantees — and what it doesn't
+- Full, incremental, and differential backups
+- Point-in-time recovery (PITR)
+- RPO and RTO, and how to choose them
+- The 3-2-1 rule and protecting backups from ransomware
+- How to run a restore drill
+
+**Before you start:** [How Databases Work](How-Databases-Work.md) · [Data Replication Strategies](Data-Replication-Strategies.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    FB[("Nightly full backup<br/>01:00")] --> R1["Restore base backup"]
+    WAL[("Archived change log<br/>01:00 to 14:31")] --> R2["Replay changes<br/>up to 14:31:59"]
+    R1 --> R2
+    R2 --> V["Verify: integrity checks<br/>and business checks"]
+    V --> OK["Switch traffic<br/>to restored database"]
+    X["14:32:00<br/>DELETE without WHERE"] -. "stop just before this" .-> R2
+```
+
+*Point-in-time recovery restores the last full backup, then replays the change log up to the moment just before the mistake.*
+
+---
+
 ## Introduction
 
 Imagine two homeowners who both claim to be prepared for a fire. The first has a fire extinguisher they bought eight years ago, have never inspected, and aren't sure still has pressure. The second has a fire extinguisher they test annually, plus a practiced evacuation plan, plus a fireproof safe with copies of important documents stored at a relative's house across town. Both homeowners will tell you, with equal confidence, "we're prepared for a fire." Only one of them actually is.
@@ -712,6 +751,120 @@ I'd reframe the ask away from abstract risk and toward concrete, quantified busi
 
 ---
 
+## Hands-On Lab
+
+Practice the only backup habit that matters — **restoring** — using SQLite from Python.
+
+```python
+import sqlite3, os, shutil, datetime
+
+# A "production" database with some data
+prod = sqlite3.connect("prod.db")
+prod.execute("CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY, amount REAL)")
+prod.executemany("INSERT INTO invoices (amount) VALUES (?)", [(i * 10.0,) for i in range(1, 101)])
+prod.commit()
+
+# 1) Take a consistent online backup (safe even while the database is in use)
+stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+backup_path = f"backup-{stamp}.db"
+with sqlite3.connect(backup_path) as backup:
+    prod.backup(backup)
+print("backup written:", backup_path, os.path.getsize(backup_path), "bytes")
+
+# 2) Disaster: someone runs a DELETE without a WHERE clause
+prod.execute("DELETE FROM invoices")
+prod.commit()
+print("rows after accident:", prod.execute("SELECT COUNT(*) FROM invoices").fetchone()[0])
+prod.close()
+
+# 3) Restore to a NEW location and verify before switching over
+shutil.copy(backup_path, "restored.db")
+restored = sqlite3.connect("restored.db")
+assert restored.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+count, total = restored.execute("SELECT COUNT(*), SUM(amount) FROM invoices").fetchone()
+print(f"restored rows: {count}, total amount: {total}")
+```
+
+**What to notice**
+- Any writes made after the backup was taken are gone. The time between the last good backup and the accident is your **data loss (RPO)**; the time it takes to restore and verify is your **recovery time (RTO)**.
+- The restore went to a new file and was **verified** (integrity check plus a business-level check on row count and totals) before use. Restoring over the original destroys evidence and your last chance to try again.
+- Now write down: how would you get *this* level of confidence for your real systems, and when did anyone last try?
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why are replicas not backups?</strong></summary>
+
+Replicas copy every change — including accidental deletes, bad migrations, and corruption — within seconds. A backup is a separate, older copy you can go back to.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What are RPO and RTO?</strong></summary>
+
+**Recovery Point Objective**: the maximum acceptable data loss, measured in time ("we can lose at most 5 minutes of data"). **Recovery Time Objective**: the maximum acceptable time to restore service ("back within 1 hour").
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What is point-in-time recovery?</strong></summary>
+
+Restore a base backup, then replay the database's change log (WAL or binlog) up to a chosen moment — for example, one second before a bad `DELETE` ran. It gives a much smaller RPO than periodic snapshots alone.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Full vs. incremental vs. differential backups?</strong></summary>
+
+**Full**: everything, every time (simple, slow, large). **Incremental**: changes since the last backup of any kind (small, but restore needs the whole chain). **Differential**: changes since the last full backup (restore needs only the full + latest differential).
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is the 3-2-1 rule?</strong></summary>
+
+At least **3** copies of the data, on **2** different types of storage, with **1** copy offsite. Modern practice adds one immutable or offline copy that attackers can't encrypt or delete.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why must restores be tested regularly?</strong></summary>
+
+Backups fail silently: jobs stop, files are incomplete or corrupted, credentials expire, or the restore procedure simply doesn't work. In the 2017 GitLab incident, several backup methods turned out not to be working when they were needed.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How do ransomware attacks defeat naive backups?</strong></summary>
+
+Attackers who gain access often find and encrypt or delete reachable backups before encrypting production. Defenses: immutable (write-once) backups, separate credentials and accounts for backups, and offline copies.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Term | Meaning |
+|-----|--------|
+| Durability | Committed data survives crashes and hardware failure |
+| Backup | Separate copy to recover from mistakes, corruption, attacks |
+| RPO | Max data loss you can accept (time) |
+| RTO | Max downtime you can accept (time) |
+| PITR | Restore to any moment using base backup + change log |
+| 3-2-1 | 3 copies, 2 media types, 1 offsite (+1 immutable) |
+| Restore drill | Scheduled practice restore, timed and verified |
+
+**Restore drill checklist:** pick a backup at random → restore to an isolated environment → run integrity checks → verify business-level facts (row counts, totals, recent records) → time every step → compare against RTO → write down what broke → fix it.
+
+**Rule:** a backup you have never restored is a hope, not a backup.
+
+---
+
 ## In the AI Era
 
 AI agents with write access to real systems have made backups newly urgent. There have been publicly reported cases of coding agents running destructive commands — deleting data or dropping databases — while attempting to "fix" a problem. The model didn't need to be malicious; it only needed access and a wrong plan.
@@ -742,6 +895,14 @@ The principles from this chapter are the defense:
 8. Backups sharing access credentials or network reachability with production offer little protection against exactly the incidents (compromised credentials, ransomware, malicious insiders) most likely to threaten production directly — genuine isolation and immutability are essential modern defenses.
 9. Real recovery usually requires more than just database data — secrets, configuration, file storage, and search indexes are all part of a functioning system and need to be included in both the backup scope and the tested restore procedure.
 10. The GitLab (2017) and Code Spaces (2014) incidents are two of the most instructive, publicly documented real-world illustrations of the exact gap this chapter is about — read them, because the industry has already paid the tuition for these lessons.
+
+---
+
+## What to Read Next
+
+- **[Data Replication Strategies](Data-Replication-Strategies.md)** — high availability, as opposed to recoverability
+- **[How File Systems Work](How-File-Systems-Work.md)** — fsync, snapshots, and copy-on-write
+- **[Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md)** — keeping automated agents away from destructive actions
 
 ---
 

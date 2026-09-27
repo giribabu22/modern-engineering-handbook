@@ -2,6 +2,45 @@
 
 ---
 
+> *“The "2 of 3" formulation was always misleading because it tended to oversimplify the tensions among properties.”*
+>
+> — **Eric Brewer**, "CAP Twelve Years Later: How the 'Rules' Have Changed," *IEEE Computer*, 2012
+
+## At a Glance
+
+> **In one sentence:** The CAP theorem says that when a network partition splits a distributed system, it must choose between consistency (every read sees the latest write) and availability (every request gets a response) — and PACELC adds that, even without partitions, it trades latency against consistency.
+
+**You'll learn**
+
+- What C, A, and P precisely mean in the theorem
+- Why "pick two of three" is misleading
+- How CP and AP systems behave during a partition
+- PACELC: the latency–consistency trade-off in normal operation
+- How real databases are classified — and why the labels are fuzzy
+
+**Before you start:** [Why Distributed Systems Are Hard](Why-Distributed-Systems-Are-Hard.md)
+
+**Reading time:** about 30 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TD
+    Q{"Is the network<br/>partitioned right now?"}
+    Q -- "yes" --> P{"Choose"}
+    P -- "Consistency" --> CP["Refuse some requests<br/>answers always current"]
+    P -- "Availability" --> AP["Answer every request<br/>some answers stale"]
+    Q -- "no (else)" --> E{"Choose"}
+    E -- "Latency" --> EL["Respond fast<br/>from nearby replicas"]
+    E -- "Consistency" --> EC["Coordinate replicas<br/>slower, always current"]
+```
+
+*CAP forces a choice only during a partition; PACELC adds the everyday trade-off between latency and consistency.*
+
+---
+
 ## Introduction
 
 Imagine you run a global bank. Customer Alice deposits $1,000 in New York. Her husband Bob tries to check their balance from Tokyo two seconds later. What should Bob see?
@@ -972,6 +1011,124 @@ A strong answer covers:
 
 ---
 
+## Hands-On Lab
+
+A two-replica store that can run in **CP** or **AP** mode. Cut the network between the replicas and watch each mode make its trade-off.
+
+```python
+class Node:
+    def __init__(self, name): self.name, self.value = name, "v1"
+
+class Cluster:
+    def __init__(self, mode):
+        self.mode, self.a, self.b, self.partitioned = mode, Node("A"), Node("B"), False
+
+    def write(self, node, value):
+        other = self.b if node is self.a else self.a
+        if not self.partitioned:
+            node.value = other.value = value              # replicate normally
+            return "ok"
+        if self.mode == "CP":
+            return "ERROR: can't reach the other replica, refusing write"
+        node.value = value                                # AP: accept locally
+        return "ok (other replica not updated)"
+
+    def read(self, node):
+        if self.partitioned and self.mode == "CP" and node is self.b:
+            return "ERROR: minority side, refusing possibly stale read"
+        return node.value
+
+for mode in ["CP", "AP"]:
+    c = Cluster(mode)
+    c.partitioned = True                                  # the network splits
+    print(f"--- {mode} during partition")
+    print("write to A:", c.write(c.a, "v2"))
+    print("read from B:", c.read(c.b))
+    c.partitioned = False                                 # network heals
+    print("after heal, A =", c.a.value, " B =", c.b.value)
+```
+
+**What to notice**
+- **CP** keeps every answer correct by refusing some requests during the partition (lower availability).
+- **AP** answers every request, but B returns stale data during the partition, and after the network heals the replicas disagree until something reconciles them. Real AP systems need anti-entropy or conflict resolution for exactly this.
+- Without a partition, both modes behave the same — CAP only forces a choice *during* a partition.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. State the CAP theorem precisely.</strong></summary>
+
+In a distributed data store, when a network **partition** occurs, the system must choose between **consistency** (linearizability: every read returns the most recent write) and **availability** (every request to a non-failed node receives a non-error response). It cannot guarantee both during the partition.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why is "pick any two of three" misleading?</strong></summary>
+
+Partitions aren't optional in a real network — they will happen. So the real choice is only *what to do when one happens*: favor consistency or availability. When there is no partition, a system can offer both.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Who proposed CAP, and who proved it?</strong></summary>
+
+Eric Brewer presented it as a conjecture in 2000. Seth Gilbert and Nancy Lynch published a formal proof in 2002.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What does PACELC add?</strong></summary>
+
+If there's a **P**artition, choose **A** or **C**; **E**lse (normal operation), choose between **L**atency and **C**onsistency. Waiting for replicas to confirm makes reads and writes consistent but slower.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Give an example where choosing availability (AP) is the right call.</strong></summary>
+
+A shopping cart, social media likes, or a product catalog: showing slightly stale data or merging carts later is far better than showing an error. Amazon's Dynamo was designed with this reasoning.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Give an example where choosing consistency (CP) is the right call.</strong></summary>
+
+Bank balances, inventory reservation for the last seat or item, leader election, and distributed locks: returning an error is better than two people spending the same money or booking the same seat.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Does CAP's "consistency" mean the same thing as ACID's "consistency"?</strong></summary>
+
+No. CAP's C means linearizability (all nodes appear to have a single, up-to-date copy). ACID's C means a transaction keeps the database's rules and constraints valid. Same word, different ideas.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Letter | In CAP it means | Not to be confused with |
+|-------|----------------|------------------------|
+| C | Linearizability: reads see the latest write | ACID consistency (constraints hold) |
+| A | Every non-failed node answers (no errors) | "Five nines" uptime |
+| P | The system keeps working despite lost messages between nodes | Data partitioning (sharding) |
+
+| During a partition | Behavior | Typical use |
+|-------------------|---------|------------|
+| CP | Some requests fail; answers are always current | Payments, locks, leader election, inventory |
+| AP | All requests answered; some may be stale; reconcile later | Carts, feeds, likes, DNS, caches |
+
+**PACELC:** Partition → Availability or Consistency; Else → Latency or Consistency.
+
+**Timeline:** 2000 Brewer's conjecture · 2002 Gilbert & Lynch proof · 2012 Brewer's "CAP Twelve Years Later" · 2012 Abadi's PACELC.
+
+---
+
 ## In the AI Era
 
 AI applications face CAP-style tradeoffs in a new form: **when a model dependency fails, do you stay available or stay consistent?**
@@ -1016,6 +1173,14 @@ The same thinking applies to **agent memory and conversation state** replicated 
 9. **Test your system under partitions.** Many organizations discover their CAP behavior only during a real failure. Test partition scenarios deliberately.
 
 10. **Communicate tradeoffs clearly.** The CAP theorem gives you a language to discuss distributed system tradeoffs with stakeholders, product managers, and fellow engineers.
+
+---
+
+## What to Read Next
+
+- **[Consistency vs Availability](Consistency-vs-Availability.md)** — the full spectrum between C and A
+- **[Data Replication Strategies](../04-Data-And-Storage/Data-Replication-Strategies.md)** — how replication choices create CP or AP behavior
+- **[How Caching Works](How-Caching-Works.md)** — a cache is a deliberately AP copy of your data
 
 ---
 

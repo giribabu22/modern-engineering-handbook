@@ -4,6 +4,44 @@
 
 ---
 
+> *“Design for ~10x growth, but plan to rewrite before ~100x.”*
+>
+> — **Jeff Dean**, "Designs, Lessons and Advice from Building Large Distributed Systems," LADIS keynote, 2009
+
+## At a Glance
+
+> **In one sentence:** Auto-scaling adds and removes capacity automatically based on demand signals, while capacity planning forecasts how much you'll need — and both depend on choosing the right metrics, keeping headroom for spikes, and accounting for how long new capacity takes to become ready.
+
+**You'll learn**
+
+- Reactive, scheduled, and predictive scaling
+- Choosing scaling metrics: CPU, requests, queue depth, latency
+- Cooldowns, flapping, and startup time
+- Capacity planning with headroom, peaks, and Little's Law
+- Load testing to find real limits
+- Cost trade-offs of reserved vs. on-demand capacity
+
+**Before you start:** [Vertical vs Horizontal Scaling](Vertical-vs-Horizontal-Scaling.md) · [How Load Balancing Works](How-Load-Balancing-Works.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    T["Traffic"] --> LB["Load balancer"] --> I["Instances"]
+    I --> M["Metrics<br/>requests, queue depth, latency"]
+    M --> AS["Auto-scaler<br/>compare with target"]
+    AS -- "scale out or in" --> P["Provision instance"]
+    P -- "boot + warm-up delay" --> I
+```
+
+*Auto-scaling is a feedback loop — and the delay before new capacity is ready is where requests pile up.*
+
+---
+
 ## Introduction
 
 Imagine a restaurant that only ever staffs exactly three servers, no matter whether it's a slow Tuesday lunch or a packed Saturday night. On Tuesday, those three servers stand around with nothing to do, drawing wages for no reason. On Saturday, the same three servers are drowning — tables wait forty minutes for a menu, food comes out cold, and customers walk out. The restaurant needed neither three servers nor ten servers; it needed the *right number of servers for the current demand*, adjusted continuously throughout the week.
@@ -1071,6 +1109,114 @@ A strong answer covers:
 
 ---
 
+## Hands-On Lab
+
+Simulate a traffic spike and see how scaling delay turns into queued requests — then use Little's Law to size capacity.
+
+```python
+def simulate(boot_minutes, target_util=0.7, per_server_rps=100):
+    servers, pending, queue, worst = 5, [], 0.0, 0.0
+    for minute in range(60):
+        rps = 300 if minute < 10 else 900                  # traffic triples at minute 10
+        servers += sum(1 for ready in pending if ready == minute)
+        pending = [ready for ready in pending if ready > minute]
+        capacity = servers * per_server_rps
+        queue = max(0.0, queue + (rps - capacity) * 60)    # requests waiting
+        worst = max(worst, queue)
+        needed = rps / (per_server_rps * target_util)       # servers for target utilization
+        shortfall = int(needed + 0.999) - servers - len(pending)
+        pending += [minute + boot_minutes] * max(0, shortfall)
+    return worst
+
+for boot in [1, 3, 10]:
+    print(f"new servers take {boot:>2} min to start -> worst backlog {simulate(boot):>9,.0f} requests")
+
+# Little's Law: requests in progress = arrival rate x time in system
+rps, latency_s = 900, 0.2
+print("concurrent requests in flight:", rps * latency_s)
+```
+
+**What to notice**
+- The slower new capacity comes online, the bigger the backlog during a spike — and a backlog means slow responses and timeouts. This is why teams keep headroom (a 70% target instead of 100%), scale on leading signals like queue depth, and pre-scale before known events.
+- Little's Law (L = λ × W) tells you how many requests are in flight at once: 900 requests/s × 0.2 s = 180 concurrent requests. Size thread pools, connection pools, and GPU batch slots from this number.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why is CPU utilization sometimes the wrong scaling metric?</strong></summary>
+
+Many services are limited by something else — I/O waits, connection pools, downstream calls, memory, or GPU capacity. CPU can look fine while requests queue. Queue depth, in-flight requests, or latency often reflect the real bottleneck better.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is scaling "flapping," and how do you prevent it?</strong></summary>
+
+Rapidly adding and removing instances as a metric crosses the threshold back and forth. Prevent it with cooldown periods, different thresholds for scaling out and in, and scaling in more slowly than scaling out.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why keep headroom instead of targeting 100% utilization?</strong></summary>
+
+New capacity takes time to start, and traffic can spike faster than scaling reacts. Queueing delay also rises steeply as utilization nears 100%. Targets around 60–75% leave room to absorb bursts.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. State Little's Law and give a use for it.</strong></summary>
+
+L = λ × W: the average number of items in a system equals the arrival rate times the average time each spends in it. Example: 500 requests/s × 0.1 s = 50 concurrent requests, which sizes worker pools and connection limits.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. When should you use scheduled or predictive scaling instead of reactive scaling?</strong></summary>
+
+When demand is predictable (business hours, weekly patterns) or when events are known in advance (launches, sales, broadcasts), especially if instances start slowly. Reactive scaling alone reacts after the spike has begun.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why must load tests go beyond the expected peak?</strong></summary>
+
+To find where and how the system breaks — the first bottleneck, whether it degrades gracefully or collapses — and to confirm auto-scaling and limits behave as expected before real users find out.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What does auto-scaling NOT fix?</strong></summary>
+
+A bottleneck that doesn't scale with instances — a single database, a lock, a rate-limited third-party API. Adding more app servers can even make it worse by sending more load to that bottleneck.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Scaling type | Triggers | Best for |
+|-------------|---------|---------|
+| Reactive (target tracking) | Metric crosses threshold | Unpredictable traffic |
+| Scheduled | Time of day / calendar | Known daily or weekly patterns |
+| Predictive | Forecast from history | Regular patterns with slow startup |
+
+**Good scaling signals:** requests per instance · queue depth · in-flight requests · p95 latency · (CPU when CPU-bound)
+
+**Capacity math:**
+- Peak load = average × peak-to-average ratio (often 2–5×)
+- Instances = peak load ÷ (capacity per instance × target utilization)
+- Concurrency (Little's Law) = arrival rate × time in system
+- Add N+1 (or N+2) for failures and deploys
+
+**Avoid:** scaling on the wrong metric · no cooldown · ignoring startup time · forgetting downstream limits · never load testing.
+
+---
+
 ## In the AI Era
 
 Auto-scaling AI inference breaks several assumptions that work well for web servers.
@@ -1107,6 +1253,14 @@ If you consume models through an API rather than hosting them, capacity planning
 9. **Two-layer scaling (pods and nodes, or application and downstream database) must be planned together.** Scaling one layer without the other just relocates the bottleneck.
 
 10. **Auto-scaling policies are also an operational and security surface.** Flapping, runaway scale-out from bugs or attacks, and stale warm images all need explicit safeguards — ceilings, cooldowns, and patched golden images.
+
+---
+
+## What to Read Next
+
+- **[Rate Limiting and Throttling](Rate-Limiting-and-Throttling.md)** — what to do when capacity can't keep up
+- **[Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)** — cascading failures during overload
+- **[Building LLM-Powered Systems](../15-AI-Era-Engineering/Building-LLM-Powered-Systems.md)** — capacity and cost planning for AI features
 
 ---
 

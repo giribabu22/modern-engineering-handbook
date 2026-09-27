@@ -4,6 +4,50 @@
 
 ---
 
+> *“In pioneer days they used oxen for heavy pulling, and when one ox couldn't budge a log, they didn't try to grow a larger ox. We shouldn't be trying for bigger computers, but for more systems of computers.”*
+>
+> — **Grace Hopper**, attributed; widely quoted from her lectures
+
+## At a Glance
+
+> **In one sentence:** Vertical scaling makes one machine bigger; horizontal scaling adds more machines — the first is simpler but hits a ceiling, the second has no hard ceiling but requires stateless design, load balancing, and handling distributed-systems problems.
+
+**You'll learn**
+
+- The limits and benefits of scaling up
+- What makes a service horizontally scalable (statelessness)
+- Amdahl's law and why serial bottlenecks cap scaling
+- Scaling databases vs. scaling application servers
+- Cost, reliability, and operational trade-offs of each
+
+**Before you start:** [How CPUs Execute Instructions](../02-How-Computers-Work/How-CPUs-Execute-Instructions.md) · [Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    subgraph V["Vertical: scale up"]
+        U1["Users"] --> BIG["One bigger server<br/>more CPU, RAM, disk"]
+    end
+    subgraph H["Horizontal: scale out"]
+        U2["Users"] --> LB["Load balancer"]
+        LB --> S1["Server"]
+        LB --> S2["Server"]
+        LB --> S3["Server"]
+        S1 --> DB[("Shared database<br/>and cache")]
+        S2 --> DB
+        S3 --> DB
+    end
+```
+
+*Scaling up buys a bigger machine; scaling out adds machines behind a load balancer and moves state into shared stores.*
+
+---
+
 ## Introduction
 
 Imagine you run a small bakery and demand for your bread suddenly triples. You have two options. You could buy a bigger oven — one that bakes three times as many loaves per batch, needs a bigger kitchen, a stronger electrical line, and a much bigger check to the appliance dealer. Or you could open two more identical ovens next to the one you already have, each running the same recipe, splitting the incoming orders between them.
@@ -886,6 +930,116 @@ For a latency-critical, tightly-coupled workload like a matching engine, horizon
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Does adding cores make your program faster?**
+Save as `scale_lab.py` and run with `python scale_lab.py` (the `if __name__` guard is required on Windows and macOS).
+
+```python
+import os, time
+from multiprocessing import Pool
+
+def work(n):
+    total = 0
+    for i in range(n):
+        total += i * i
+    return total
+
+if __name__ == "__main__":
+    jobs = [3_000_000] * 32
+    for workers in [1, 2, 4, os.cpu_count()]:
+        start = time.perf_counter()
+        with Pool(workers) as pool:
+            pool.map(work, jobs)
+        print(f"{workers:>3} workers: {time.perf_counter() - start:.2f} s")
+```
+
+**What to notice:** time drops as you add workers, but not perfectly — process startup, coordination, and the non-parallel parts limit the gain. Past the number of physical cores, gains flatten or reverse.
+
+**Experiment 2 — Amdahl's law.**
+If a fraction `p` of the work can run in parallel on `n` machines, the best possible speedup is `1 / ((1 - p) + p / n)`.
+
+```python
+for p in [0.5, 0.9, 0.99]:
+    print(f"p={p}: " + "  ".join(f"n={n}: {1 / ((1 - p) + p / n):5.1f}x" for n in [2, 8, 64, 1024]))
+```
+
+With 10% serial work (p = 0.9), even 1,024 machines give less than a 10× speedup. Scaling out only pays when the serial part — often a shared database or lock — is tiny.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is the main advantage of vertical scaling?</strong></summary>
+
+Simplicity: no code changes, no distributed-systems problems, no data partitioning. You move to a bigger machine (more CPU, RAM, faster disks) and the application keeps working as before.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What are the limits of vertical scaling?</strong></summary>
+
+A hard ceiling (the biggest machine available), rising cost per unit of capacity at the top end, and a single point of failure. Upgrades may also require downtime.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What makes a service easy to scale horizontally?</strong></summary>
+
+Being **stateless**: any instance can handle any request because session data, files, and state live in shared stores (databases, caches, object storage), not in one server's memory or disk.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What does Amdahl's law say?</strong></summary>
+
+The speedup from parallelism is limited by the part that can't be parallelized. With a serial fraction s, the maximum speedup is 1/s — for example, 10% serial work caps speedup at 10×, no matter how many machines you add.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why is the database usually the hardest part to scale horizontally?</strong></summary>
+
+It holds shared, mutable state that must stay consistent. Stateless app servers can be copied freely; splitting a database requires replication, sharding, and handling cross-shard queries and transactions.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why is "scale vertically first" often good advice?</strong></summary>
+
+Modern machines are very large, and a bigger server avoids a lot of complexity. Many companies run far longer than expected on one well-tuned database server. Scale horizontally when you hit a real limit or need redundancy.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Horizontal scaling improves availability. Why?</strong></summary>
+
+With several instances behind a load balancer, one can fail (or be deployed) while the others keep serving. A single large machine is a single point of failure.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| | Vertical (scale up) | Horizontal (scale out) |
+|-|--------------------|-----------------------|
+| How | Bigger CPU, RAM, disk | More machines |
+| Code changes | Usually none | Statelessness, load balancing |
+| Ceiling | Largest machine available | Very high |
+| Failure | Single point of failure | Survives instance loss |
+| Cost curve | Rises steeply at the top | Roughly linear |
+| Best for | Databases, early stage, simplicity | Stateless web/API tiers, huge scale |
+
+**Amdahl's law:** speedup = 1 / ((1 − p) + p/n). **Serial fraction s caps speedup at 1/s.**
+
+**Checklist before scaling out:** move sessions out of memory · store files in object storage · make requests idempotent · add health checks · put a load balancer in front.
+
+---
+
 ## In the AI Era
 
 AI serving forces a vertical-first decision: **the model must fit.** A model that needs 140 GB of memory cannot be split across many small, cheap machines without tight coordination. So the first step is vertical — a node with enough GPU memory (or a tightly connected multi-GPU node) — and horizontal scaling follows as you add replicas of that unit to serve more users.
@@ -924,6 +1078,14 @@ Many production systems use **model routing**: a cheap classifier or small model
 9. **Real production systems are almost always hybrid**: stateless tiers scale out aggressively and cheaply; stateful primaries scale up as far as reasonable, then add horizontal read replicas, and shard only as a last resort.
 
 10. **Premature horizontal scaling (especially sharding) is a common, costly architectural mistake.** Scale in response to a measured, current bottleneck — not a hypothetical future one.
+
+---
+
+## What to Read Next
+
+- **[How Load Balancing Works](How-Load-Balancing-Works.md)** — how traffic is spread across the machines you added
+- **[Database Sharding](Database-Sharding.md)** — scaling the hardest tier horizontally
+- **[Auto-scaling and Capacity Planning](Auto-scaling-and-Capacity-Planning.md)** — adding and removing machines automatically
 
 ---
 

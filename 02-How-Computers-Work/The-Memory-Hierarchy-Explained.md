@@ -4,6 +4,45 @@
 
 ---
 
+> *“We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil.”*
+>
+> — **Donald Knuth**, "Structured Programming with go to Statements," *Computing Surveys*, 1974
+
+## At a Glance
+
+> **In one sentence:** Computers stack small, fast, expensive memory on top of large, slow, cheap memory — registers, caches, RAM, SSD, disk — and programs are fast when their data access patterns keep the hot data near the top.
+
+**You'll learn**
+
+- The latency numbers every engineer should know
+- Cache lines, spatial and temporal locality
+- Cache associativity and write policies
+- Cache coherence (MESI) and false sharing between threads
+- NUMA and why memory can be "far" on big servers
+- How to write cache-friendly code
+
+**Before you start:** [How Memory Works](How-Memory-Works.md) · [How CPUs Execute Instructions](How-CPUs-Execute-Instructions.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TB
+    R["Registers<br/>~0.3 ns · bytes"] --> L1["L1 cache<br/>~1 ns · tens of KB"]
+    L1 --> L2["L2 cache<br/>~4 ns · MB"]
+    L2 --> L3["L3 cache<br/>~10-40 ns · tens of MB"]
+    L3 --> RAM["Main memory<br/>~100 ns · GB"]
+    RAM --> SSD["SSD<br/>~100 µs · TB"]
+    SSD --> NET["Disk or network<br/>~ms · unlimited"]
+```
+
+*Each step down the hierarchy is roughly ten to a thousand times slower — and much bigger and cheaper. Fast programs keep their hot data near the top.*
+
+---
+
 ## Introduction
 
 Imagine you're a chef in the world's busiest kitchen. The ingredients you're actively chopping sit on your cutting board — reachable in a fraction of a second, but there's room for only a handful. A small rack of frequently used spices and tools sits within arm's reach. A pantry down the hall holds everything else you might need today, but walking there takes real time. And the walk-in freezer in the basement holds bulk supplies you only need occasionally — a trip there and back can take minutes.
@@ -874,6 +913,124 @@ For a hard real-time system, the unpredictability of cache hits vs. misses is it
 
 ---
 
+## Hands-On Lab
+
+You need Python 3 with NumPy (`pip install numpy`).
+
+**Experiment 1 — Row order vs. column order.**
+The same numbers, summed in two orders. NumPy stores arrays row by row (row-major).
+
+```python
+import numpy as np, time
+
+n = 5000
+a = np.ones((n, n))                    # 5000 × 5000 doubles ≈ 200 MB
+
+t = time.perf_counter()
+total = sum(a[i, :].sum() for i in range(n))    # walk along rows: contiguous memory
+print(f"rows:    {time.perf_counter() - t:.2f} s")
+
+t = time.perf_counter()
+total = sum(a[:, j].sum() for j in range(n))    # walk down columns: 40 KB jumps
+print(f"columns: {time.perf_counter() - t:.2f} s")
+```
+
+Expected: the column version is several times slower. Row access uses every byte of each 64-byte cache line the CPU fetches; column access uses 8 bytes of each line and throws the rest away.
+
+**Experiment 2 — Find your cache sizes by timing.**
+Random reads from arrays of growing size. When the array stops fitting in a cache level, the time per access jumps.
+
+```python
+import numpy as np, time
+
+for size_kb in [16, 128, 1024, 8192, 65536, 262144]:
+    a = np.zeros(size_kb * 1024 // 8)
+    idx = np.random.randint(0, len(a), 5_000_000)
+    a[idx].sum()                                   # warm up
+    t = time.perf_counter()
+    a[idx].sum()
+    ns = (time.perf_counter() - t) / len(idx) * 1e9
+    print(f"{size_kb:>8} KB array: {ns:5.2f} ns per random read")
+```
+
+Expected: time per read stays low while the array fits in L1/L2, rises past your L2 and L3 sizes (compare with the cache sizes from the CPU chapter's lab), and is highest once the array only fits in RAM. NumPy overhead blurs the exact numbers, but the steps are usually visible.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Roughly how much slower is main memory than an L1 cache hit?</strong></summary>
+
+About 100×: an L1 hit is around 1 ns; a main-memory access is around 100 ns. An SSD read (~100 µs) is another ~1,000× slower than RAM.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is a cache line, and why does it make sequential access fast?</strong></summary>
+
+The unit of transfer between memory and cache — usually 64 bytes. When you read one byte, the whole line is loaded. Sequential access uses all of it (spatial locality), and hardware prefetchers load the next lines before you ask.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Explain temporal and spatial locality.</strong></summary>
+
+**Temporal:** data used recently is likely to be used again soon (keep it in cache). **Spatial:** data near recently used data is likely to be used soon (load whole lines, prefetch neighbors). Caches work because most programs show both.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is false sharing?</strong></summary>
+
+Two threads on different cores write to *different* variables that happen to sit in the *same* cache line. The coherence protocol bounces the line between cores on every write, making both threads slow even though they share no data. Fix: pad or align the variables onto separate lines.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What does NUMA mean for performance?</strong></summary>
+
+On multi-socket servers, each CPU socket has its own local memory. Accessing another socket's memory is slower. Threads and their memory should be kept on the same node, or throughput can drop significantly.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why are B-trees preferred over binary trees for databases?</strong></summary>
+
+A B-tree node holds many keys and matches the size of a disk page or several cache lines, so each level costs one slow fetch while narrowing the search enormously. The tree is shallow — few slow memory or disk accesses per lookup.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Write-through vs. write-back cache — what's the difference?</strong></summary>
+
+Write-through writes to the cache and the next level immediately (simple, consistent, slower writes). Write-back updates only the cache and writes to the next level later when the line is evicted (faster, but the cache holds the only up-to-date copy for a while).
+
+</details>
+
+---
+
+## Cheat Sheet
+
+**Latency numbers (approximate, order of magnitude):**
+
+| Access | Latency | If L1 took 1 second… |
+|-------|--------|---------------------|
+| L1 cache | ~1 ns | 1 second |
+| L2 cache | ~4 ns | 4 seconds |
+| L3 cache | ~10–40 ns | 10–40 seconds |
+| Main memory (RAM) | ~100 ns | ~1.5 minutes |
+| NVMe SSD read | ~100 µs | ~1 day |
+| Round trip within a data center | ~500 µs | ~6 days |
+| Spinning disk seek | ~10 ms | ~4 months |
+| Round trip across continents | ~150 ms | ~5 years |
+
+**Rules for cache-friendly code:** process data sequentially · keep hot data small and together (arrays over pointer-heavy structures) · loop in memory order · avoid false sharing between threads · measure with a profiler before tuning.
+
+---
+
 ## In the AI Era
 
 GPUs have their own memory hierarchy, and the fastest AI algorithms are designed around it:
@@ -924,6 +1081,14 @@ Designing an AI feature is largely deciding *what belongs in which tier* — the
 9. **Cache timing is a genuine security side channel**, as demonstrated concretely by Spectre and Meltdown, and by attacks like Flush+Reload and Prime+Probe against cryptographic implementations.
 
 10. **Measure before optimizing.** The memory hierarchy's effects are large enough to matter, but also subtle enough that intuition is frequently wrong — profilers that expose cache-miss and coherence-traffic counters should drive real-world locality optimization decisions, not guesswork.
+
+---
+
+## What to Read Next
+
+- **[How Caching Works](../05-Distributed-Systems/How-Caching-Works.md)** — the same principles, applied to whole systems
+- **[How Databases Work](../04-Data-And-Storage/How-Databases-Work.md)** — B-trees and buffer pools built around the hierarchy
+- **[How LLMs Actually Work](../15-AI-Era-Engineering/How-LLMs-Actually-Work.md)** — why AI inference is limited by memory bandwidth
 
 ---
 

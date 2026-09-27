@@ -4,6 +4,43 @@
 
 ---
 
+> *“The nice thing about standards is that you have so many to choose from.”*
+>
+> — **Andrew S. Tanenbaum**, *Computer Networks*, 1981
+
+## At a Glance
+
+> **In one sentence:** Networking is organized in layers — link, IP, TCP or UDP, and application protocols like HTTP — where each layer solves one problem and relies on the one below, which is why HTTP could evolve from 1.1 to 2 to 3 without changing the internet itself.
+
+**You'll learn**
+
+- The layered model (OSI and TCP/IP) and encapsulation
+- IP addressing and routing at the network layer
+- TCP: handshakes, reliability, flow control, and congestion control
+- UDP and when an unreliable protocol is the right choice
+- HTTP/1.1 vs. HTTP/2 vs. HTTP/3 (QUIC)
+- Head-of-line blocking and why HTTP/3 runs over UDP
+
+**Before you start:** [How The Internet Really Works](How-The-Internet-Really-Works.md)
+
+**Reading time:** about 45 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TB
+    A["Application<br/>HTTP request"] --> T["Transport<br/>+ TCP header: ports, sequence numbers"]
+    T --> N["Internet<br/>+ IP header: source and destination addresses"]
+    N --> L["Link<br/>+ Ethernet or Wi-Fi frame"]
+    L --> W(("Cable or radio"))
+```
+
+*Each layer wraps the data from the layer above in its own header — and the receiver unwraps them in reverse.*
+
+---
+
 ## Introduction
 
 Imagine mailing a 500-page manuscript to a publisher across the country. You wouldn't stuff all 500 pages into one envelope and hope the postal service delivers it intact — you'd split it into numbered chapters, mail each in its own envelope, and ask the publisher to confirm receipt of each one so you know what to resend if something goes missing. You'd also agree on a shared language (English), a shared format (typed pages, not handwritten notes on napkins), and a shared process for starting and ending the exchange (a cover letter, then a closing thank-you note).
@@ -895,6 +932,119 @@ A strong answer covers: HTTP/3's main benefits (faster connection setup via 1-RT
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — See HTTP on the wire.**
+Run `curl -v https://www.wikipedia.org -o /dev/null` (Windows PowerShell: `curl.exe -v https://www.wikipedia.org -o NUL`). In the output:
+- lines starting with `*` are curl's notes (DNS, TCP connect, TLS, protocol chosen),
+- `>` lines are the request headers you sent,
+- `<` lines are the response status and headers.
+
+**Experiment 2 — Compare HTTP versions.**
+
+```bash
+curl -s -o /dev/null -w "%{http_version}\n" --http1.1 https://www.wikipedia.org
+curl -s -o /dev/null -w "%{http_version}\n" --http2   https://www.wikipedia.org
+```
+
+(Windows: `curl.exe` and `-o NUL`.) If curl says an option "is not supported", your curl build lacks that protocol — use the browser method below instead. If your curl was built with HTTP/3 support, `--http3` works too. In a browser, the DevTools **Network** tab has a *Protocol* column (right-click the column headers to enable it) showing `h2` or `h3` per request.
+
+
+**Experiment 3 — Count the round trips.**
+
+- **macOS/Linux:**
+  ```bash
+  curl -o /dev/null -s -w "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s\n" https://www.wikipedia.org
+  ```
+- **Windows (PowerShell):** use `curl.exe` (the real curl, included with Windows 10 and later) and `-o NUL`:
+  ```powershell
+  curl.exe -o NUL -s -w "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s`n" https://www.wikipedia.org
+  ```
+
+Each number is cumulative since the start: DNS lookup → TCP connected → TLS handshake done → first byte of the response → finished. Run it twice: the second DNS time is often near zero because the answer was cached.
+
+The gap between `dns` and `connect` is one TCP handshake (one round trip). The gap between `connect` and `tls` is the TLS handshake. Compare those gaps with your `ping` time to the same host.
+
+**Experiment 4 — See open TCP connections and their states.**
+Run `netstat -an` (Windows) or `ss -tan` (Linux) or `netstat -an -p tcp` (macOS). Look for `ESTABLISHED`, `LISTEN`, and `TIME_WAIT` states — the TCP state machine from this chapter, running on your machine right now.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What does "encapsulation" mean in the protocol stack?</strong></summary>
+
+Each layer wraps the data from the layer above with its own header: HTTP data goes inside a TCP segment, inside an IP packet, inside an Ethernet or Wi-Fi frame. Each receiving layer removes its header and passes the rest up.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Describe the TCP three-way handshake.</strong></summary>
+
+The client sends **SYN**; the server replies **SYN-ACK**; the client sends **ACK**. Both sides have now agreed on starting sequence numbers, and the connection is open — at a cost of one round trip before any data flows.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. How does TCP make an unreliable network reliable?</strong></summary>
+
+Sequence numbers put bytes in order, acknowledgments confirm receipt, retransmission resends lost segments, checksums detect corruption, and flow control stops a fast sender from overwhelming a slow receiver.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is TCP congestion control?</strong></summary>
+
+TCP deliberately limits how much unacknowledged data it sends, growing the amount while things go well and cutting back when it detects loss or rising delay. This protects the shared network from collapse.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. When would you choose UDP over TCP?</strong></summary>
+
+When timeliness matters more than perfect delivery or when the application wants to handle reliability itself: live voice and video, games, DNS queries, and QUIC (HTTP/3), which builds its own reliability on top of UDP.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What problem did HTTP/2 solve, and what problem remained?</strong></summary>
+
+HTTP/2 multiplexes many requests over one TCP connection, removing HTTP-level head-of-line blocking and the need for many connections. But because everything shares one TCP stream, one lost packet still stalls all requests until it's retransmitted — TCP-level head-of-line blocking.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Why does HTTP/3 run over QUIC on UDP?</strong></summary>
+
+QUIC gives each stream independent delivery, so a lost packet only delays its own stream. It also combines the transport and TLS 1.3 handshakes (fewer round trips) and supports connection migration when your network changes (e.g., Wi-Fi to mobile).
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Layer (TCP/IP model) | Examples | Job |
+|---------------------|----------|-----|
+| Application | HTTP, DNS, TLS, SMTP, SSH | What the data means |
+| Transport | TCP, UDP, QUIC | Process-to-process delivery, reliability |
+| Internet | IPv4, IPv6, ICMP | Addressing and routing between networks |
+| Link | Ethernet, Wi-Fi | Delivery on one local network |
+
+| | HTTP/1.1 | HTTP/2 | HTTP/3 |
+|-|---------|--------|--------|
+| Transport | TCP | TCP | QUIC (over UDP) |
+| Requests per connection | One at a time | Many, multiplexed | Many, independent streams |
+| Head-of-line blocking | HTTP and TCP level | TCP level | Largely removed |
+| Headers | Plain text | Binary, compressed | Binary, compressed |
+
+**TCP states you'll see:** LISTEN · SYN_SENT · ESTABLISHED · FIN_WAIT · TIME_WAIT · CLOSE_WAIT (many of these usually means an app isn't closing connections).
+
+---
+
 ## In the AI Era
 
 LLM APIs look like ordinary HTTP APIs, but they stretch the protocol stack in unusual ways.
@@ -939,6 +1089,14 @@ This breaks assumptions that were baked into infrastructure for years:
 9. **Protocol design has direct security implications** — the 2023 HTTP/2 Rapid Reset attack showed that a protocol feature reducing legitimate overhead can simultaneously reduce the cost of abuse.
 
 10. **Choosing the right protocol is a tradeoff exercise, not a default** — HTTP/3 isn't universally better than HTTP/2, and TCP isn't universally better than UDP; the right choice depends on network conditions, latency tolerance, and reliability requirements specific to the workload.
+
+---
+
+## What to Read Next
+
+- **[How HTTPS Protects Your Data](How-HTTPS-Protects-Your-Data.md)** — the security layer between TCP and HTTP
+- **[How Load Balancing Works](../08-Scalability/How-Load-Balancing-Works.md)** — Layer 4 vs. Layer 7 load balancing
+- **[Rate Limiting and Throttling](../08-Scalability/Rate-Limiting-and-Throttling.md)** — protecting HTTP services from overload
 
 ---
 

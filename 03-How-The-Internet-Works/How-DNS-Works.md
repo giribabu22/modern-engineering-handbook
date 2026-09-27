@@ -2,6 +2,52 @@
 
 ---
 
+> *“It's not DNS. There's no way it's DNS. It was DNS.”*
+>
+> — **A system administrators' haiku**, author unknown
+
+## At a Glance
+
+> **In one sentence:** DNS is the internet's distributed, cached directory: a resolver walks from the root servers to top-level-domain servers to a domain's authoritative servers to turn a name like example.com into an IP address — and caches the answer for a set time (the TTL).
+
+**You'll learn**
+
+- The DNS hierarchy: root, top-level domain (TLD), and authoritative servers
+- Recursive resolvers and how a lookup proceeds step by step
+- Record types: A, AAAA, CNAME, MX, TXT, NS
+- Caching and TTLs — and why DNS changes "take time to propagate"
+- Common DNS failures and attacks, and defenses like DNSSEC and encrypted DNS
+
+**Before you start:** [How The Internet Really Works](How-The-Internet-Really-Works.md)
+
+**Reading time:** about 30 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+sequenceDiagram
+    participant D as Your device
+    participant R as Recursive resolver
+    participant Root as Root server
+    participant TLD as .com server
+    participant A as example.com name server
+    D->>R: where is www.example.com?
+    R->>Root: www.example.com?
+    Root-->>R: ask the .com servers
+    R->>TLD: www.example.com?
+    TLD-->>R: ask example.com's name servers
+    R->>A: www.example.com?
+    A-->>R: 203.0.113.10 (TTL 3600)
+    R-->>D: 203.0.113.10
+    Note over R: caches each answer until its TTL expires
+```
+
+*A resolver with an empty cache walks the hierarchy from the root to the domain's own name servers, then caches every answer for its TTL.*
+
+---
+
 ## Introduction
 
 Imagine you want to call a friend who lives in another country. You don't memorize their phone number — you save it in your phone's contacts as "Alice" and tap to call. The phone looks up the number, dials it, and connects you.
@@ -968,6 +1014,114 @@ A strong answer covers:
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Look up different record types.**
+
+- **Windows (PowerShell):**
+  ```powershell
+  Resolve-DnsName wikipedia.org -Type A
+  Resolve-DnsName wikipedia.org -Type AAAA
+  Resolve-DnsName gmail.com -Type MX
+  Resolve-DnsName wikipedia.org -Type NS
+  Resolve-DnsName www.github.com -Type CNAME
+  ```
+- **macOS/Linux:**
+  ```bash
+  dig wikipedia.org A +short
+  dig wikipedia.org AAAA +short
+  dig gmail.com MX +short
+  dig wikipedia.org NS +short
+  dig www.github.com CNAME +short
+  ```
+
+Note which records point to IP addresses (A, AAAA), which point to other names (CNAME, NS, MX), and the TTL values in the full output.
+
+**Experiment 2 — Watch a full resolution (macOS/Linux).**
+`dig +trace wikipedia.org` performs the lookup the way a resolver does: first the root servers (`.`), then the `org.` servers, then Wikipedia's own name servers, which return the final answer.
+
+**Experiment 3 — Watch the cache.**
+Run `dig wikipedia.org` twice in a row and compare the TTL: it counts down, because the second answer came from your resolver's cache. On Windows, `ipconfig /displaydns` shows your local DNS cache, and `ipconfig /flushdns` clears it.
+
+**Experiment 4 — Ask different resolvers.**
+Compare `nslookup wikipedia.org 1.1.1.1` and `nslookup wikipedia.org 8.8.8.8`. Large sites may return different IP addresses to different resolvers or locations — DNS is often used to send users to a nearby server.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What happens, step by step, when a resolver has nothing cached for www.example.com?</strong></summary>
+
+It asks a **root server**, which refers it to the `.com` TLD servers; asks a **.com server**, which refers it to example.com's **authoritative** name servers; asks one of those, which returns the IP address. The resolver caches every answer and returns the result to your device.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is the difference between a recursive resolver and an authoritative server?</strong></summary>
+
+The **recursive resolver** (your ISP's, or a public one like 1.1.1.1 or 8.8.8.8) does the legwork and caches answers for many users. The **authoritative server** holds the official records for a specific domain and answers only for it.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. A, AAAA, CNAME, MX — what does each record do?</strong></summary>
+
+**A**: name → IPv4 address. **AAAA**: name → IPv6 address. **CNAME**: this name is an alias for another name. **MX**: which mail servers accept email for the domain (with priorities).
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. You changed a DNS record, but some users still reach the old server for hours. Why?</strong></summary>
+
+Resolvers and devices cached the old answer and will keep using it until its **TTL** expires. Best practice: lower the TTL well before a planned change, make the change, then raise the TTL again.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why are there only 13 root server names, yet the system handles huge traffic?</strong></summary>
+
+Each of the 13 root server identities (a to m) is served by many machines around the world using **anycast** — the same address announced from many places — so queries go to a nearby instance. Heavy caching in resolvers also means root servers are asked relatively rarely.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is DNS cache poisoning, and what defends against it?</strong></summary>
+
+An attacker tricks a resolver into caching a forged answer, sending users to a malicious server. Defenses include random source ports and query IDs, and **DNSSEC**, which cryptographically signs records so resolvers can verify them.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What do DNS over HTTPS (DoH) and DNS over TLS (DoT) protect?</strong></summary>
+
+They encrypt DNS queries between your device and the resolver, so people on the network path can't see or tamper with which names you look up. They don't hide the queries from the resolver itself.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Record | Purpose | Example |
+|-------|--------|--------|
+| A | Name → IPv4 address | `example.com → 203.0.113.10` |
+| AAAA | Name → IPv6 address | `example.com → 2001:db8::10` |
+| CNAME | Alias to another name | `www.example.com → example.com` |
+| MX | Mail servers for the domain | `10 mail.example.com` |
+| TXT | Free text (verification, SPF, DKIM) | `v=spf1 include:...` |
+| NS | Authoritative servers for the domain | `ns1.example.com` |
+
+**Lookup path:** device cache → recursive resolver cache → root → TLD (`.com`) → authoritative → answer (cached for TTL).
+
+**Before changing records:** lower the TTL (e.g., to 300 s) a day ahead, change, verify, then raise it again.
+
+**Tools:** `dig`, `nslookup`, `Resolve-DnsName` (Windows), `ipconfig /flushdns`
+
+---
+
 ## In the AI Era
 
 When AI agents can fetch URLs, DNS becomes part of your security boundary.
@@ -1006,6 +1160,14 @@ Defenses:
 9. **Encrypted DNS is the new standard** — DNS over HTTPS (DoH) and DNS over TLS (DoT) prevent surveillance and tampering. Major browsers now default to DoH.
 
 10. **The DNS resolver you choose matters** — Public resolvers (1.1.1.1, 8.8.8.8) are faster, more reliable, and more privacy-respecting than ISP defaults.
+
+---
+
+## What to Read Next
+
+- **[How HTTPS Protects Your Data](How-HTTPS-Protects-Your-Data.md)** — the next step after finding the server's address
+- **[How A Webpage Reaches Your Screen](How-A-Webpage-Reaches-Your-Screen.md)** — DNS in the full page-load journey
+- **[How Caching Works](../05-Distributed-Systems/How-Caching-Works.md)** — TTLs and invalidation beyond DNS
 
 ---
 

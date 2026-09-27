@@ -4,6 +4,48 @@
 
 ---
 
+> *“All problems in computer science can be solved by another level of indirection.”*
+>
+> — **David Wheeler**, as quoted by Butler Lampson in his Turing Award lecture, 1992
+
+## At a Glance
+
+> **In one sentence:** Memory gives every program the illusion of its own large, private address space — built from DRAM chips, page tables, the MMU and TLB, and an operating system that loads pages on demand.
+
+**You'll learn**
+
+- How DRAM physically stores bits and why it must be refreshed
+- Virtual memory, paging, and address translation through the MMU and TLB
+- What a page fault is and why most are harmless
+- The stack vs. the heap, allocators, and garbage collection
+- How memory leaks, thrashing, and fragmentation happen
+- Memory-safety bugs such as buffer overflows and use-after-free
+
+**Before you start:** [What Happens When You Press A Key](What-Happens-When-You-Press-A-Key.md)
+
+**Reading time:** about 45 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    P["Program uses a<br/>virtual address"] --> T{"TLB hit?"}
+    T -- "yes (fast)" --> PA["Physical address"]
+    T -- "no" --> W["Walk the page table"]
+    W --> M{"Page in RAM?"}
+    M -- "yes" --> U["Update TLB"]
+    M -- "no: page fault" --> OS["OS loads or<br/>allocates the page"]
+    OS --> U
+    U --> PA
+    PA --> RAM["Read or write RAM<br/>(through the caches)"]
+```
+
+*Every memory access goes through a translation from virtual to physical address — usually a fast TLB hit, occasionally a page-table walk or a page fault handled by the OS.*
+
+---
+
 ## Introduction
 
 Imagine a colossal library with millions of shelves, but no librarian and no card catalog. Every book is just a number — shelf 4,829,102, book 3. To find anything, you'd need to remember the exact number, and if two readers ever wrote down the same shelf number by mistake, they'd tear pages out of each other's books without knowing it.
@@ -961,6 +1003,131 @@ Virtual memory and paging are what make safe multi-tenancy on shared hardware po
 
 ---
 
+## Hands-On Lab
+
+You need Python 3 and the `psutil` package (`pip install psutil`). Works on Windows, macOS, and Linux.
+
+**Experiment 1 — Watch demand paging happen.**
+The OS gives you address space immediately but only assigns physical memory when you touch a page.
+
+```python
+import mmap, psutil
+
+proc = psutil.Process()
+rss = lambda: proc.memory_info().rss // 2**20        # resident memory in MiB
+
+print("page size:", mmap.PAGESIZE, "bytes")
+print("start:          ", rss(), "MiB")
+m = mmap.mmap(-1, 1024 * 2**20)                       # ask for 1 GiB of memory
+print("after mapping:  ", rss(), "MiB")
+for i in range(0, len(m), mmap.PAGESIZE):             # touch one byte per page
+    m[i] = 1
+print("after touching: ", rss(), "MiB")
+```
+
+Expected: resident memory barely changes after mapping 1 GiB, then jumps by roughly 1,024 MiB after touching every page. Each first touch caused a **minor page fault** that the OS resolved by assigning a physical page.
+
+**Experiment 2 — Find a memory leak by line number.**
+
+```python
+import tracemalloc
+
+tracemalloc.start()
+_cache = []
+
+def handle_request(i):
+    _cache.append("x" * 10_000)      # bug: grows forever, never evicted
+
+for i in range(5_000):
+    handle_request(i)
+
+for stat in tracemalloc.take_snapshot().statistics("lineno")[:3]:
+    print(stat)
+```
+
+Expected: the top line points at the `_cache.append` line with about 50 MB allocated. This is how you find leaks in real services: compare snapshots over time and look for lines whose allocations keep growing.
+
+**Experiment 3 (Linux, optional) — See a process's memory map.**
+Run `cat /proc/self/maps` to see the address space of the `cat` process itself: the program code, heap, shared libraries, stack, and more — each with its own permissions (`r-xp`, `rw-p`, ...).
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why must DRAM be refreshed, and how often?</strong></summary>
+
+Each bit is stored as charge in a tiny capacitor that leaks. The memory controller re-reads and rewrites every row periodically — typically every 64 ms — or the data would fade.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What is virtual memory, in one sentence?</strong></summary>
+
+Each process uses its own private range of virtual addresses, which the hardware (MMU) and the operating system (page tables) translate to physical memory locations — providing isolation, the illusion of more memory, and flexible placement.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What does the TLB do, and why does it matter?</strong></summary>
+
+The Translation Lookaside Buffer caches recent virtual-to-physical page translations. Without it, every memory access would need several extra memory reads to walk the page tables. A TLB miss is costly; huge pages reduce misses for large working sets.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Is a page fault an error?</strong></summary>
+
+Usually not. A **minor** fault just means the page isn't mapped yet (like first touch in the lab) and the OS fixes it quickly. A **major** fault needs to read from disk (slow). An access to an invalid address, however, becomes a segmentation fault / access violation and the process is stopped.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Stack vs. heap: which is faster to allocate, and why?</strong></summary>
+
+The stack: allocation is just moving the stack pointer, and memory is freed automatically when the function returns. Heap allocation goes through an allocator that must find a free block and track it, and the memory must be freed explicitly or by a garbage collector.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is thrashing?</strong></summary>
+
+When the combined working set of running programs exceeds physical RAM, the system spends most of its time swapping pages between RAM and disk instead of doing useful work. Throughput collapses and everything feels frozen.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What does ASLR defend against?</strong></summary>
+
+Address Space Layout Randomization places the stack, heap, and libraries at random addresses each run, so an attacker exploiting a memory bug can't reliably know where to jump or what to overwrite.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Concept | One-line explanation |
+|--------|---------------------|
+| DRAM | Bits as charge in capacitors; refreshed about every 64 ms |
+| Virtual address | What your program sees; private per process |
+| Physical address | Actual location in RAM |
+| Page | Unit of memory management, usually 4 KiB |
+| Page table | OS-managed map from virtual pages to physical frames |
+| MMU | Hardware that translates addresses on every access |
+| TLB | Cache of recent translations |
+| Minor page fault | Page not mapped yet; fixed in memory (fast) |
+| Major page fault | Page must be read from disk (slow) |
+| Stack | Fast, automatic, per-thread, limited size |
+| Heap | Flexible, explicit or garbage-collected, can fragment |
+| OOM killer | Linux process killer when memory runs out |
+
+**Common bugs:** memory leak · use-after-free · buffer overflow · double free · fragmentation · thrashing
+
+---
+
 ## In the AI Era
 
 Memory is the first wall every AI system hits. Two numbers dominate:
@@ -1008,6 +1175,14 @@ Memory is the first wall every AI system hits. Two numbers dominate:
 9. **Some memory vulnerabilities exist below the software stack entirely** — Rowhammer proved that the physical implementation of DRAM itself can be a security boundary, independent of any software bug.
 
 10. **Diagnosing memory problems in production requires the right tools and the right mental model** — distinguishing a genuine leak from fragmentation, from thrashing, from a simply undersized memory limit, requires looking at RSS trends, page fault types, and allocator/GC-specific introspection, not just "the process got OOM-killed."
+
+---
+
+## What to Read Next
+
+- **[The Memory Hierarchy Explained](The-Memory-Hierarchy-Explained.md)** — why where data lives matters as much as how much you have
+- **[How Operating Systems Work](How-Operating-Systems-Work.md)** — the virtual memory manager in context
+- **[How LLMs Actually Work](../15-AI-Era-Engineering/How-LLMs-Actually-Work.md)** — why AI models are measured in gigabytes of memory
 
 ---
 

@@ -4,6 +4,48 @@
 
 ---
 
+> *“"One Size Fits All": An Idea Whose Time Has Come and Gone.”*
+>
+> — **Michael Stonebraker and Uğur Çetintemel**, paper title, ICDE 2005
+
+## At a Glance
+
+> **In one sentence:** SQL and NoSQL differ mainly in data model, schema enforcement, how they scale, and their default consistency — so the right choice comes from your access patterns and consistency needs, not from which is "faster" or "more modern."
+
+**You'll learn**
+
+- Relational, document, key-value, wide-column, and graph data models
+- Schema-on-write vs. schema-on-read
+- Joins vs. denormalization and their trade-offs
+- How each family typically scales
+- Strong vs. eventual consistency defaults
+- A practical framework for choosing a database
+
+**Before you start:** [How Databases Work](How-Databases-Work.md)
+
+**Reading time:** about 30 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TD
+    S["What are your main queries?"] --> T{"Need transactions<br/>across many entities?"}
+    T -- "yes" --> REL["Relational (SQL)"]
+    T -- "no" --> W{"Huge write volume,<br/>simple lookups by key?"}
+    W -- "yes" --> KV["Key-value or<br/>wide-column"]
+    W -- "no" --> DOC{"Mostly self-contained<br/>documents?"}
+    DOC -- "yes" --> D["Document store<br/>(or JSONB in SQL)"]
+    DOC -- "no" --> G{"Deep relationship<br/>traversals?"}
+    G -- "yes" --> GR["Graph database"]
+    G -- "no" --> REL
+```
+
+*Start from your access patterns and consistency needs — the database family follows from them.*
+
+---
+
 ## Introduction
 
 Imagine two ways of organizing a company's filing cabinets. In the first, every document type has a strict, pre-defined form: invoices go in invoice folders with exactly these twelve fields, in this order, cross-referenced by customer ID to the customer folder. Change the form, and every existing invoice must be reconciled to match. In the second, each folder simply contains whatever paperwork was relevant when it was filed — a customer's folder might have an invoice, a handwritten note, and a photograph, all together, and you look inside that one folder to get everything about that customer without cross-referencing anything else.
@@ -639,6 +681,119 @@ I'd explain that "using one database for everything" doesn't eliminate the trade
 
 ---
 
+## Hands-On Lab
+
+Model the same data two ways with SQLite (built into Python) and see the trade-off yourself.
+
+```python
+import sqlite3, json
+
+db = sqlite3.connect(":memory:")
+
+# Relational: authors stored once, referenced by id
+db.executescript("""
+CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT);
+CREATE TABLE posts   (id INTEGER PRIMARY KEY, author_id INT REFERENCES authors(id), title TEXT);
+INSERT INTO authors VALUES (1, 'Ada');
+INSERT INTO posts VALUES (1, 1, 'Engines'), (2, 1, 'Notes'), (3, 1, 'Loops');
+""")
+
+# Document style: each post embeds a copy of its author
+db.execute("CREATE TABLE post_docs (id INTEGER PRIMARY KEY, doc TEXT)")
+for pid, title in [(1, "Engines"), (2, "Notes"), (3, "Loops")]:
+    db.execute("INSERT INTO post_docs VALUES (?, ?)",
+               (pid, json.dumps({"title": title, "author": {"id": 1, "name": "Ada"}})))
+
+# Reading one post: the document needs no join
+print(db.execute("SELECT json_extract(doc, '$.author.name') FROM post_docs WHERE id = 2").fetchone())
+print(db.execute("SELECT a.name FROM posts p JOIN authors a ON a.id = p.author_id WHERE p.id = 2").fetchone())
+
+# The author changes her name
+db.execute("UPDATE authors SET name = 'Ada Lovelace' WHERE id = 1")                    # 1 row
+db.execute("UPDATE post_docs SET doc = json_set(doc, '$.author.name', 'Ada Lovelace') "
+           "WHERE id IN (1, 2)")                                                         # forgot post 3!
+
+print(db.execute("SELECT DISTINCT a.name FROM posts p JOIN authors a ON a.id = p.author_id").fetchall())
+print(db.execute("SELECT DISTINCT json_extract(doc, '$.author.name') FROM post_docs").fetchall())
+```
+
+**What to notice**
+- Reading is simpler for the document model: everything about a post is in one place.
+- Updating is simpler and safer for the relational model: the name lives in one row. The denormalized documents now disagree with each other (`Ada` vs. `Ada Lovelace`) because one copy was missed — exactly the "denormalized data drifts out of sync" failure from this chapter.
+- Neither is wrong. Choose based on whether your workload is dominated by reading whole aggregates or by updating shared facts.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What does "schema-on-write" vs. "schema-on-read" mean?</strong></summary>
+
+**Schema-on-write** (typical SQL): the database enforces the structure when data is written, rejecting invalid rows. **Schema-on-read** (typical document stores): the database accepts any shape, and the application must interpret and validate it when reading.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why do document databases often avoid joins?</strong></summary>
+
+They store related data together in one document (denormalization), so a single read returns everything for the common access pattern. The cost: data duplicated across documents must be kept in sync on updates.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Is NoSQL always faster or more scalable than SQL?</strong></summary>
+
+No. Many NoSQL systems make horizontal scaling easier by limiting features such as joins and multi-row transactions. A well-indexed relational database handles very large workloads, and distributed SQL databases scale horizontally too. Speed depends on access patterns and design.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Name a workload where a relational database is usually the better fit.</strong></summary>
+
+Anything with many relationships and strong correctness needs: payments, orders and inventory, accounting, bookings — where transactions across several tables and flexible ad-hoc queries matter.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Name a workload where a wide-column or key-value store is usually the better fit.</strong></summary>
+
+Very high write volume with simple, known access patterns: time-series metrics, event logs, IoT readings, session storage, shopping carts, and caches.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is PostgreSQL's JSONB, and why is it relevant to this debate?</strong></summary>
+
+A binary JSON column type that can be indexed and queried. It lets you keep flexible, schema-less fields inside a relational database, so you often don't need a separate document database for semi-structured data.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What is the most important question to ask before choosing a database?</strong></summary>
+
+"What are our access patterns?" — which queries run most often, how data is read and written, and how consistent it must be. Then check operational factors: team expertise, backups, and hosting.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Family | Examples | Great for | Weak at |
+|-------|---------|----------|--------|
+| Relational (SQL) | PostgreSQL, MySQL, SQL Server | Relationships, transactions, ad-hoc queries | Very high write volume on one node without extra work |
+| Document | MongoDB, Couchbase | Self-contained aggregates, flexible fields | Many-to-many relationships, cross-document updates |
+| Key-value | Redis, DynamoDB | Lookups by key, caching, sessions | Queries by anything other than the key |
+| Wide-column | Cassandra, ScyllaDB | Massive writes, time series | Ad-hoc queries, joins |
+| Graph | Neo4j | Deep relationship traversal | Bulk aggregations |
+| Distributed SQL | CockroachDB, Spanner, YugabyteDB | SQL + horizontal scale | Latency and operational complexity |
+
+**Decision flow:** list your top queries → need multi-entity transactions? → prefer relational → need extreme write scale with simple lookups? → consider key-value or wide-column → mostly self-contained documents? → document store or JSONB → default to what your team can operate well.
+
+---
+
 ## In the AI Era
 
 The AI era added a new contender to this debate: the **vector database**. The same reasoning from this chapter applies — choose by access pattern and operational cost, not by hype.
@@ -671,6 +826,14 @@ Practical lessons that have emerged:
 8. Polyglot persistence — using different databases for different subsystems based on their actual needs — is common and often the most honest resolution of the SQL vs NoSQL question.
 9. NewSQL systems (CockroachDB, Spanner, YugabyteDB) exist specifically to synthesize the two camps: SQL semantics and ACID guarantees, with horizontal, distributed scalability.
 10. "It depends on your access patterns" is not a cop-out answer in this debate — it is, quite literally, the entire correct answer.
+
+---
+
+## What to Read Next
+
+- **[Consistency vs Availability](../05-Distributed-Systems/Consistency-vs-Availability.md)** — what "eventual consistency" really means
+- **[Database Sharding](../08-Scalability/Database-Sharding.md)** — scaling SQL and NoSQL horizontally
+- **[Data Replication Strategies](Data-Replication-Strategies.md)** — how each family keeps copies in sync
 
 ---
 

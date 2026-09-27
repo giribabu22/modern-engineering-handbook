@@ -4,6 +4,50 @@
 
 ---
 
+> *“A complex system that works is invariably found to have evolved from a simple system that worked.”*
+>
+> — **John Gall**, *Systemantics*, 1975 ("Gall's Law")
+
+## At a Glance
+
+> **In one sentence:** An LLM-powered product is a system — retrieval, tools, workflows or agents, validation, guardrails, observability, and cost control around a model — and most quality problems are fixed in that system, not by changing the model.
+
+**You'll learn**
+
+- The complexity ladder from single prompt to multi-agent
+- How retrieval-augmented generation (RAG) works end to end
+- Designing safe, effective tools for models
+- Agent loops, limits, and side effects
+- Structured output, guardrails, and validation
+- Tracing, reliability patterns, and cost control
+
+**Before you start:** [How LLMs Actually Work](How-LLMs-Actually-Work.md) · [Why Distributed Systems Are Hard](../05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md)
+
+**Reading time:** about 10 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TB
+    subgraph IDX["Indexing (offline)"]
+        direction LR
+        DOCS["Documents"] --> CH["Split into chunks"] --> EMB["Embed"] --> VS[("Search index<br/>text + vectors + permissions")]
+    end
+    subgraph QRY["Answering (online)"]
+        direction LR
+        Q["Question"] --> RET["Retrieve and rerank<br/>filtered by user permissions"]
+        VS --> RET
+        RET --> PR["Prompt: instructions<br/>+ sources + question"]
+        PR --> LLM["Model"] --> A["Answer with citations"]
+    end
+```
+
+*Retrieval-augmented generation has two pipelines: indexing documents ahead of time, and retrieving the relevant pieces for each question.*
+
+---
+
 ## Introduction
 
 A company builds an internal assistant to answer employee questions about HR policy. Version one is a single call: the employee's question goes to a model with a system prompt. It answers confidently — and often wrongly, because it has never seen this company's policies.
@@ -395,6 +439,132 @@ The Model Context Protocol is an open standard for connecting AI applications to
 
 ---
 
+## Hands-On Lab
+
+Build the "retrieval" half of RAG in about 30 lines of pure Python, and see why answers need a "not found" path.
+
+```python
+import math, re
+from collections import Counter
+
+docs = {
+    "refund-policy":  "Refunds are available within 30 days of purchase for unused items with a receipt.",
+    "shipping":       "Standard shipping takes 3 to 5 business days. Express shipping takes 1 to 2 days.",
+    "warranty":       "Electronics include a one year warranty covering manufacturing defects.",
+    "returns-label":  "To return an item, print a prepaid label from your order page.",
+    "store-hours":    "Stores are open 9am to 9pm Monday to Saturday and closed on Sunday.",
+}
+
+STOP = {"a", "an", "the", "is", "are", "to", "do", "i", "you", "my", "your", "on", "of", "for",
+        "in", "and", "with", "how", "many", "have", "get", "there", "from", "at"}
+tokenize = lambda text: [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOP]
+doc_tokens = {d: Counter(tokenize(t)) for d, t in docs.items()}
+df = Counter(word for counts in doc_tokens.values() for word in counts)
+idf = {w: math.log(len(docs) / df[w]) for w in df}
+
+def search(question, k=2, min_score=0.5):
+    q = tokenize(question)
+    scores = {d: sum(counts[w] * idf.get(w, 0) for w in q) for d, counts in doc_tokens.items()}
+    ranked = sorted(scores.items(), key=lambda x: -x[1])[:k]
+    return [(d, round(s, 2)) for d, s in ranked if s >= min_score]
+
+def build_prompt(question):
+    hits = search(question)
+    if not hits:
+        return "NO SOURCES FOUND -> answer: \"I couldn't find that in our policies.\""
+    sources = "\n".join(f"[{d}] {docs[d]}" for d, _ in hits)
+    return (f"Answer using ONLY the sources below and cite them like [id].\n"
+            f"{sources}\n\nQuestion: {question}")
+
+for q in ["How many days do I have to get a refund?",
+          "Is there a warranty on my laptop?",
+          "Do you sell gift cards?"]:
+    print(q, "->", search(q))
+    print(build_prompt(q), "\n")
+```
+
+**What to notice**
+- The refund question ranks the **shipping** page first. The shipping page mentions "days" twice, and the word "refund" doesn't match "Refunds" because there's no stemming. The correct page still arrives in second place, which is why RAG systems retrieve several chunks and often add a **reranker**.
+- The warranty question works only because the exact word "warranty" matches. Add `"Is my computer covered if it breaks?"` to the list: nothing is found, even though the warranty page is the answer. That gap between words and meaning is why real systems add **embeddings** (semantic search) to keyword search — hybrid retrieval.
+- The gift-card question finds nothing, so the system says so instead of letting a model improvise. Grounding includes knowing when you have no grounds.
+- Every RAG quality problem you'll meet starts here: look at what was retrieved before blaming the model.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is the difference between a workflow and an agent?</strong></summary>
+
+In a **workflow**, your code decides the sequence of steps. In an **agent**, the model decides the next step in a loop, choosing which tools to call. Workflows are more predictable and cheaper; agents handle open-ended tasks.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Name the two pipelines in a RAG system.</strong></summary>
+
+**Indexing** (offline): clean documents, split them into chunks, embed them, and store vectors with metadata. **Query** (online): take the question, retrieve relevant chunks, optionally rerank, build a prompt with them, and generate an answer with citations.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why combine keyword search with vector search?</strong></summary>
+
+Keyword search excels at exact terms — names, IDs, error codes — while vector search finds matching meaning with different words. Hybrid retrieval usually beats either alone.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. A RAG assistant gives a wrong answer. What should you check first?</strong></summary>
+
+Whether the right source chunk was retrieved. If not, it's a retrieval problem (chunking, search, filters, stale index). If it was, it's a generation problem (prompt, context, model).
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why must permissions be enforced in the retrieval layer rather than the prompt?</strong></summary>
+
+Prompts are behavioral guidance, not access control. Once a document is in the context, the model can repeat it. Filtering by the user's permissions before retrieval guarantees they only see what they're allowed to.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What limits should every agent loop have?</strong></summary>
+
+Maximum steps, wall-clock time, tokens, and cost, plus detection of repeated identical tool calls. Without them, a confused agent can loop indefinitely and run up large bills.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How do you make a side-effecting tool safe to retry?</strong></summary>
+
+Use idempotency keys so a repeated call returns the original result instead of acting twice, and require human approval for high-impact actions.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+**Complexity ladder:** single prompt → prompt + RAG → fixed workflow → routing → tool-using agent → multi-agent. Climb only when evidence says you must.
+
+| Component | Key decisions |
+|----------|--------------|
+| Chunking | Natural boundaries; keep headings with chunks |
+| Retrieval | Hybrid keyword + vector; metadata and permission filters |
+| Reranking | Retrieve broadly, pass only the best to the model |
+| Tools | Narrow, typed, least privilege, helpful errors, capped output |
+| Agents | Step/time/token/cost limits; loop detection; checkpoints |
+| Output | JSON schema + validation + truncation check |
+| Guardrails | Input checks, output checks, approval for actions |
+| Observability | Trace model, prompt version, retrieved IDs, tools, tokens, cost |
+
+**Reliability:** timeouts · retries with backoff (only when safe) · fallbacks (other model, cached answer, non-AI path) · circuit breakers · streaming · async for long jobs.
+
+---
+
 ## Key Takeaways
 
 1. The model is one component; retrieval, tools, validation, evaluation, and operations determine product quality.
@@ -404,6 +574,14 @@ The Model Context Protocol is an open standard for connecting AI applications to
 5. Agents are distributed workflows — they need limits, idempotency, checkpoints, and observability.
 6. Trace every interaction: model, prompt version, retrieved context, tool calls, tokens, cost, and outcome.
 7. Enforce authorization and high-impact decisions in code, never in prompts.
+
+---
+
+## What to Read Next
+
+- **[Evaluating AI Systems](Evaluating-AI-Systems.md)** — measuring whether your system actually works
+- **[Securing AI Systems](Securing-AI-Systems.md)** — defending retrieval and tools against injection
+- **[Data Replication Strategies](../04-Data-And-Storage/Data-Replication-Strategies.md)** — keeping RAG indexes in sync with the source
 
 ---
 

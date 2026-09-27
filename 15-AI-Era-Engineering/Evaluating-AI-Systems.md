@@ -4,6 +4,46 @@
 
 ---
 
+> *“Program testing can be used to show the presence of bugs, but never to show their absence!”*
+>
+> — **Edsger W. Dijkstra**, *Notes on Structured Programming*, 1970
+
+## At a Glance
+
+> **In one sentence:** Evaluations are the test suites of AI systems: datasets of real and edge-case inputs plus graders, reported as success rates per segment, run on every prompt, retrieval, or model change so quality improves measurably instead of by feel.
+
+**You'll learn**
+
+- Why ordinary unit tests aren't enough for AI features
+- Programmatic graders, LLM-as-judge, and human review
+- How to build and grow an eval dataset
+- Segment metrics, nondeterminism, and pass rates
+- Offline evals vs. online monitoring
+- Running evals in CI and gating releases
+
+**Before you start:** [How LLMs Actually Work](How-LLMs-Actually-Work.md) · [Building LLM-Powered Systems](Building-LLM-Powered-Systems.md)
+
+**Reading time:** about 10 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    C["Eval cases<br/>real inputs, bugs, edge cases"] --> R["Run the system"] --> G["Grade<br/>code checks, LLM judge, humans"]
+    G --> A["Analyze per segment<br/>and read failures"]
+    A --> CH["Change one thing<br/>prompt, retrieval, model"]
+    CH --> R
+    A --> SHIP{"Any segment<br/>regressed?"}
+    SHIP -- "no" --> S["Ship"]
+    S -- "production failures" --> C
+```
+
+*Evaluation-driven development: every change is judged against the same dataset, segment by segment, and every production failure becomes a new case.*
+
+---
+
 ## Introduction
 
 A team tweaks the prompt for their document-extraction feature to fix a customer complaint about date formats. They try the customer's document; it works. They ship.
@@ -334,6 +374,130 @@ Evaluate the final outcome (did the task succeed, checked programmatically where
 
 ---
 
+## Hands-On Lab
+
+Build a tiny eval harness around a stand-in "model" (a keyword classifier), then make a "prompt change" and see what the average hides.
+
+```python
+from collections import defaultdict
+
+cases = [  # (input, expected_label, segment)
+    ("I want my money back", "refund", "english"),
+    ("it came broken, I need a refund", "refund", "english"),
+    ("the screen is broken", "refund", "english"),
+    ("where is my stuff", "shipping", "english"),
+    ("my package hasn't arrived yet", "shipping", "english"),
+    ("where is it?", "shipping", "english"),
+    ("how do I reset my password", "account", "english"),
+    ("can't log in", "account", "english"),
+    ("quiero un reembolso", "refund", "spanish"),
+    ("¿dónde está mi pedido?", "shipping", "spanish"),
+    ("no puedo iniciar sesión", "account", "spanish"),
+    ("devolución del dinero por favor", "refund", "spanish"),
+]
+
+def model_v1(text):
+    t = text.lower()
+    if any(w in t for w in ["refund", "money back", "reembolso", "devolución"]): return "refund"
+    if any(w in t for w in ["package", "arrived", "pedido"]): return "shipping"
+    return "account"
+
+def model_v2(text):             # "improved" for English complaints, but the Spanish keywords were dropped
+    t = text.lower()
+    if any(w in t for w in ["refund", "money back", "broken"]): return "refund"
+    if any(w in t for w in ["package", "arrived", "where is"]): return "shipping"
+    return "account"
+
+def evaluate(model):
+    by_segment = defaultdict(list)
+    for text, expected, segment in cases:
+        by_segment[segment].append(model(text) == expected)
+    overall = sum(sum(v) for v in by_segment.values()) / len(cases)
+    return overall, {s: sum(v) / len(v) for s, v in by_segment.items()}
+
+for name, model in [("v1", model_v1), ("v2", model_v2)]:
+    overall, segments = evaluate(model)
+    print(f"{name}: overall {overall:.0%}  " + "  ".join(f"{s} {a:.0%}" for s, a in segments.items()))
+```
+
+**What to notice**
+- Both versions score **75% overall** — judged by the average, the change did nothing. Per segment, English jumped from 62% to 100% while Spanish collapsed from 100% to 25%. On a real product, that segment could be an entire country of customers.
+- Now make it your own: add five tricky cases (typos, mixed languages, a message that mentions two intents), and a `model_v3` that fixes them without breaking anything else. This loop — cases, change, re-run, compare per segment — is evaluation-driven development.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What are the two parts of every eval?</strong></summary>
+
+A **dataset** of cases (inputs with expected outputs or criteria) and a **grader** that scores each output. Results are aggregated into rates.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why prefer programmatic graders?</strong></summary>
+
+They're fast, cheap, and deterministic. Many qualities can be checked in code: valid JSON, correct fields, required facts present, length limits, citations pointing to real sources.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. How do you know an LLM judge can be trusted?</strong></summary>
+
+Compare its grades with human grades on a sample, measure agreement, and refine the rubric until agreement is acceptable. Re-check periodically, especially when the judge model changes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why segment metrics instead of reporting one average?</strong></summary>
+
+A change can improve the average while badly hurting an important group — a language, customer tier, or document type. Segment metrics reveal regressions the average hides.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Where should eval cases come from?</strong></summary>
+
+Real production inputs (anonymized as needed), every reported bug or failure, deliberately designed edge cases (empty, huge, other languages, adversarial), and coverage across segments.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why run each case more than once?</strong></summary>
+
+Outputs vary between runs. Multiple runs give a pass *rate* per case and show whether a behavior is reliable or only works sometimes.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What's the danger of tuning prompts until the eval set passes?</strong></summary>
+
+Overfitting: the system learns the specific cases, not the underlying task. Keep a held-out set you don't tune against, and keep adding fresh cases from production.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Grader | Use for | Watch out for |
+|-------|--------|--------------|
+| Programmatic | Formats, fields, facts, tests passing | Can't judge open-ended quality |
+| Reference similarity | Rough regression signal | Rewards wording, not correctness |
+| LLM-as-judge | Faithfulness, helpfulness, tone | Bias and variance — validate against humans |
+| Human review | Ground truth, calibration | Slow and costly |
+
+**Eval loop:** collect cases → run → grade → read failures → change one thing → re-run everything → ship only if no important segment regressed.
+
+**Metrics to track:** task success · format validity · faithfulness to sources · correct and incorrect refusals · injection resistance · latency · cost — all per segment.
+
+**Rule:** every production AI bug becomes an eval case.
+
+---
+
 ## Key Takeaways
 
 1. Evals are the test suites of AI systems: a dataset of cases plus graders, reported as success rates.
@@ -343,6 +507,14 @@ Evaluate the final outcome (did the task succeed, checked programmatically where
 5. Read raw failures regularly — they reveal patterns metrics can't.
 6. Run evals in CI and gate prompt, retrieval, and model changes on them.
 7. Combine offline evals with online monitoring, and turn production failures into new eval cases.
+
+---
+
+## What to Read Next
+
+- **[Securing AI Systems](Securing-AI-Systems.md)** — adding adversarial cases to your evals
+- **[How To Solve Problems Systematically](../01-Foundations/How-To-Solve-Problems-Systematically.md)** — the scientific method behind evaluation
+- **[Auto-scaling and Capacity Planning](../08-Scalability/Auto-scaling-and-Capacity-Planning.md)** — canary releases and production monitoring
 
 ---
 

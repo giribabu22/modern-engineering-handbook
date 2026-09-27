@@ -4,6 +4,45 @@
 
 ---
 
+> *“Life beyond Distributed Transactions: an Apostate's Opinion.”*
+>
+> — **Pat Helland**, paper title, CIDR 2007
+
+## At a Glance
+
+> **In one sentence:** Sharding splits one database's data across many independent databases by a shard key, so storage and write load can grow beyond one machine — at the cost of harder cross-shard queries, transactions, hot spots, and resharding.
+
+**You'll learn**
+
+- When sharding is (and isn't) necessary
+- Range, hash, directory, and geographic sharding
+- How to choose a good shard key
+- Hot shards, cross-shard queries, and distributed transactions
+- Resharding safely and consistent hashing
+
+**Before you start:** [How Databases Work](../04-Data-And-Storage/How-Databases-Work.md) · [Data Replication Strategies](../04-Data-And-Storage/Data-Replication-Strategies.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart TD
+    APP["Application"] --> R["Shard router<br/>shard = hash(user_id)"]
+    R --> S0["Shard 0<br/>users A"]
+    R --> S1["Shard 1<br/>users B"]
+    R --> S2["Shard 2<br/>users C"]
+    S0 --- S0R["replica"]
+    S1 --- S1R["replica"]
+    S2 --- S2R["replica"]
+```
+
+*A router uses the shard key to send each query to exactly one shard; each shard is its own replicated database.*
+
+---
+
 ## Introduction
 
 Imagine a single filing cabinet trying to hold every customer record for a national bank. At first it works fine — a few thousand folders, one clerk, one cabinet. But as the bank grows to millions of customers, the cabinet overflows. You can't buy a bigger cabinet forever; eventually no cabinet is big enough, and even if it were, one clerk can't retrieve folders fast enough for the whole country.
@@ -994,6 +1033,129 @@ First, I'd challenge whether the data model could avoid this — e.g., could the
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — What happens to your data when you add a shard?**
+
+```python
+import hashlib, bisect
+
+keys = [f"user-{i}" for i in range(100_000)]
+h = lambda s: int(hashlib.md5(s.encode()).hexdigest(), 16)
+
+# Naive: shard = hash(key) % N
+moved = sum(h(k) % 4 != h(k) % 5 for k in keys)
+print(f"hash % N, 4 -> 5 shards: {moved / len(keys):.0%} of keys move")
+
+# Consistent hashing with 100 virtual nodes per shard
+def ring(n):
+    points = sorted((h(f"shard{s}-vn{v}"), s) for s in range(n) for v in range(100))
+    return [p for p, _ in points], [s for _, s in points]
+
+def lookup(r, key):
+    hashes, shards = r
+    return shards[bisect.bisect(hashes, h(key)) % len(hashes)]
+
+r4, r5 = ring(4), ring(5)
+moved = sum(lookup(r4, k) != lookup(r5, k) for k in keys)
+print(f"consistent hashing, 4 -> 5 shards: {moved / len(keys):.0%} of keys move")
+```
+
+Expected: about **80%** of keys move with `hash % N`, but only about **20%** (≈ 1/5, the new shard's fair share) with consistent hashing.
+
+**Experiment 2 — A bad shard key creates a hot shard.**
+
+```python
+import random
+from collections import Counter
+random.seed(3)
+
+countries = random.choices(["IN", "US", "BR", "DE", "JP"], weights=[60, 20, 10, 5, 5], k=100_000)
+users = range(100_000)
+
+shard_of = {"IN": 0, "US": 1, "BR": 2, "DE": 3, "JP": 4}
+by_country = Counter(shard_of[c] for c in countries)
+by_user = Counter(u % 5 for u in users)
+print("rows per shard, shard key = country:", sorted(by_country.values(), reverse=True))
+print("rows per shard, shard key = user_id:", sorted(by_user.values(), reverse=True))
+```
+
+Sharding by country puts most of the data (and traffic) on one shard, while others sit nearly idle — and you can never split India's data further without changing the key. A high-cardinality key such as `user_id` spreads load evenly.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What is the difference between sharding and replication?</strong></summary>
+
+**Replication** copies the *same* data to several machines (availability, read scale). **Sharding** splits *different* data across machines (write and storage scale). Large systems usually do both: each shard is replicated.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What makes a good shard key?</strong></summary>
+
+High cardinality, even distribution of data *and* traffic, and alignment with the most common queries, so most requests touch only one shard. `user_id` or `tenant_id` are common choices.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Range sharding vs. hash sharding?</strong></summary>
+
+**Range** keeps nearby keys together (efficient range scans) but can create hot spots, such as all new data landing on the newest range. **Hash** spreads keys evenly but makes range queries touch every shard.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What is a hot shard, and how can you fix one?</strong></summary>
+
+A shard receiving far more data or traffic than others — for example, one celebrity account or one huge tenant. Fixes: a better shard key, splitting that shard, adding a random suffix to spread a hot key, or moving large tenants to dedicated shards.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. Why are cross-shard transactions hard?</strong></summary>
+
+Each shard is an independent database. Atomically changing data on several requires a distributed protocol like two-phase commit, which is slow and fragile. Design so that most transactions stay within one shard.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Why does hash(key) % N cause pain when you add a shard?</strong></summary>
+
+Changing N changes the result for most keys, so most data must move. Consistent hashing or a directory of fixed virtual partitions moves only a small fraction.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What should you try before sharding?</strong></summary>
+
+Query and index tuning, a bigger machine, read replicas, caching, archiving old data, and splitting unrelated tables into separate databases. Sharding adds permanent complexity.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Strategy | How keys map to shards | Pros | Cons |
+|---------|----------------------|------|-----|
+| Range | Key ranges (A–F, G–M…) | Range scans | Hot spots |
+| Hash | hash(key) → shard | Even spread | Range queries hit all shards |
+| Directory / lookup | Table says where each key lives | Flexible moves | Extra lookup, directory must scale |
+| Geographic | By region | Data residency, low latency | Uneven regions |
+
+**Good shard key:** high cardinality · even load · used by most queries · rarely changes.
+
+**Before sharding:** tune queries → add indexes → scale up → add read replicas → cache → archive → split databases by feature → *then* shard.
+
+**Resharding safely:** double-write or backfill → verify → switch reads → switch writes → clean up.
+
+---
+
 ## In the AI Era
 
 The largest AI models are too big for one GPU, so they are **sharded** — and the tradeoffs mirror database sharding closely.
@@ -1031,6 +1193,14 @@ At the application layer, vector indexes and conversation stores for multi-tenan
 9. **Sharding should be a last resort among scaling techniques**, applied only after vertical scaling, indexing, caching, and read replicas have been exhausted — it is powerful but adds substantial, largely irreversible operational complexity.
 
 10. **Real-world sharding schemes succeed by matching the shard key to the dominant access pattern** — Instagram and Pinterest around user-centric object IDs, Notion around workspace ID, Discord around channel ID — not by chasing theoretical purity.
+
+---
+
+## What to Read Next
+
+- **[Consistency vs Availability](../05-Distributed-Systems/Consistency-vs-Availability.md)** — consistency guarantees across shards
+- **[How Load Balancing Works](How-Load-Balancing-Works.md)** — consistent hashing and request routing
+- **[SQL vs NoSQL: The Real Difference](../04-Data-And-Storage/SQL-vs-NoSQL-The-Real-Difference.md)** — databases with sharding built in
 
 ---
 

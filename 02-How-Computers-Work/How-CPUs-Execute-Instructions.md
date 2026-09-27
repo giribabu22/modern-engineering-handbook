@@ -4,6 +4,42 @@
 
 ---
 
+> *“The complexity for minimum component costs has increased at a rate of roughly a factor of two per year.”*
+>
+> — **Gordon Moore**, "Cramming More Components onto Integrated Circuits," *Electronics*, 1965 — the origin of "Moore's Law"
+
+## At a Glance
+
+> **In one sentence:** A CPU repeatedly fetches, decodes, and executes instructions — and modern CPUs go fast by overlapping that work with pipelining, predicting branches, executing out of order, and running several instructions per cycle.
+
+**You'll learn**
+
+- The fetch–decode–execute cycle
+- Pipelining and pipeline hazards
+- Branch prediction and what a misprediction costs
+- Out-of-order and superscalar execution
+- Why clock speed alone doesn't determine performance (IPC)
+- How Spectre and Meltdown turned speculation into a security problem
+
+**Before you start:** [How Memory Works](How-Memory-Works.md)
+
+**Reading time:** about 50 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    F["Fetch"] --> D["Decode"] --> R["Rename and<br/>schedule"] --> E["Execute<br/>(out of order)"] --> C["Retire<br/>(in order)"]
+    BP["Branch predictor"] -. "guesses the next address" .-> F
+    E -. "wrong guess: flush and refetch" .-> F
+```
+
+*A modern CPU is an assembly line: it guesses ahead, runs instructions out of order, and throws work away when a guess was wrong.*
+
+---
+
 ## Introduction
 
 Imagine a restaurant kitchen during dinner rush. A single chef who takes an order, walks to the pantry, gathers ingredients, cooks the dish, plates it, and *then* takes the next order would serve maybe ten tables a night. A well-run kitchen instead runs an **assembly line**: one cook takes orders, another preps ingredients, another sautés, another plates — all working on *different* orders *simultaneously*. At any instant, four dishes are in four different stages of completion. The kitchen doesn't cook any single dish faster, but it serves vastly more dishes per hour.
@@ -862,6 +898,130 @@ For a system where tail latency dominates, I'd optimize specifically to minimize
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Meet your own CPU.**
+
+- **Windows (PowerShell):** `Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, L2CacheSize, L3CacheSize`
+- **macOS:** `sysctl -n machdep.cpu.brand_string; sysctl hw.physicalcpu hw.logicalcpu; sysctl -a | grep cachesize`
+- **Linux:** `lscpu`
+
+If logical processors are double the cores, your CPU uses **simultaneous multithreading** (Hyper-Threading): two instruction streams share one core's execution units.
+
+**Experiment 2 — Measure branch prediction.**
+This classic experiment sums numbers greater than or equal to 128. The work is identical in both runs; only the order of the data changes. You need a C compiler (`gcc` or `clang`; on Windows, use WSL or MSYS2).
+
+```c
+// branch.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#define N 32768
+
+int cmp(const void *a, const void *b) { return *(const int *)a - *(const int *)b; }
+
+int main(int argc, char **argv) {
+    static int data[N];
+    for (int i = 0; i < N; i++) data[i] = rand() % 256;
+    if (argc > 1) qsort(data, N, sizeof(int), cmp);      // sorted run
+
+    clock_t start = clock();
+    long long sum = 0;
+    for (int r = 0; r < 20000; r++)
+        for (int i = 0; i < N; i++)
+            if (data[i] >= 128) sum += data[i];           // the branch
+    printf("%s: %.2f s (sum=%lld)\n", argc > 1 ? "sorted" : "unsorted",
+           (double)(clock() - start) / CLOCKS_PER_SEC, sum);
+    return 0;
+}
+```
+
+```bash
+gcc -O0 branch.c -o branch
+./branch            # unsorted: the branch is random, so prediction fails ~50% of the time
+./branch sorted     # sorted: the branch is predictable, so it is much faster
+```
+
+Expected: the sorted run is noticeably faster, often 2–5×. Now compile with `-O2` or `-O3` and run again: the gap often disappears because the compiler replaced the branch with a branch-free instruction (a conditional move or vector code). That's why "measure with the real build flags" is a golden rule.
+
+**Experiment 3 (Linux, optional) — Count mispredictions.**
+`perf stat -e branches,branch-misses ./branch` and `perf stat -e branches,branch-misses ./branch sorted` show the miss rate directly.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What are the stages of the basic instruction cycle?</strong></summary>
+
+**Fetch** the instruction from memory (at the program counter), **decode** it to work out the operation and operands, **execute** it (ALU, memory access, or branch), and write back the result. Then the program counter moves on and the cycle repeats.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. How does pipelining speed things up if each instruction still takes the same time?</strong></summary>
+
+It overlaps stages: while one instruction executes, the next is being decoded and the one after is being fetched — like an assembly line. Each instruction's latency is similar, but **throughput** approaches one instruction per cycle per pipeline.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why is a branch misprediction expensive?</strong></summary>
+
+The CPU guessed which way the branch would go and started executing instructions down that path. If the guess was wrong, all that speculative work is thrown away and the pipeline refills from the correct address — typically wasting on the order of 10–20 cycles on modern CPUs.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. Why was the sorted array faster in the lab experiment?</strong></summary>
+
+With sorted data, the condition is false for a long run and then true for a long run, so the branch predictor almost always guesses correctly. With random data the outcome is a coin flip, so about half of the predictions fail.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is IPC, and why does it matter as much as clock speed?</strong></summary>
+
+Instructions Per Cycle. Performance ≈ clock speed × IPC. A 3 GHz CPU completing 4 instructions per cycle beats a 4 GHz CPU completing 2. Since the mid-2000s, gains have come more from IPC and more cores than from higher clock speeds.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What does out-of-order execution do?</strong></summary>
+
+The CPU looks ahead for instructions whose inputs are ready and executes them early, instead of waiting on a slow one (such as a cache miss). A reorder buffer makes results appear in the original program order, so the program can't tell.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. How did Spectre and Meltdown exploit speculative execution?</strong></summary>
+
+Speculatively executed instructions that are later discarded still leave traces in the cache. By timing memory accesses, an attacker could infer data that the speculative path touched — including secrets the program should never have been able to read.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Technique | Idea | Cost / risk |
+|----------|-----|------------|
+| Pipelining | Overlap instruction stages | Hazards and stalls |
+| Branch prediction | Guess branch outcomes ahead of time | ~10–20 cycles per miss |
+| Out-of-order execution | Run ready instructions early | Complex hardware; speculation side channels |
+| Superscalar | Several instructions issued per cycle | Limited by dependencies |
+| Register renaming | Remove false dependencies between instructions | More hardware registers |
+| SMT / Hyper-Threading | Two threads share one core | Threads compete for the same units |
+| Multicore | Several independent cores | Software must be parallel |
+
+**Performance formula:** time = instructions × cycles per instruction ÷ clock rate.
+
+**Practical rules:** keep data access predictable, avoid unpredictable branches in hot loops, measure with real compiler flags, and profile before optimizing.
+
+---
+
 ## In the AI Era
 
 Modern AI runs mostly on **GPUs and other accelerators** (such as TPUs), not CPUs — and the reason comes straight from this chapter.
@@ -897,6 +1057,14 @@ CPU knowledge still matters in AI systems:
 8. **Speculative execution's cache-timing side effects created the Spectre/Meltdown vulnerability class**, disclosed in January 2018 — an emergent security property of decades of performance-optimization techniques, not a simple coding bug.
 9. **Mitigations (KPTI, retpolines, microcode updates) close real vulnerabilities at a real, measurable performance cost**, and the decision to disable them should be based on actual trust-boundary analysis, not just a desire for a performance win.
 10. **Real-world CPU performance tuning is about identifying the actual bottleneck** (branch mispredictions, cache misses, dependency chains) via measurement, not intuition — the correct fix differs completely depending on which one is actually limiting a hot path.
+
+---
+
+## What to Read Next
+
+- **[The Memory Hierarchy Explained](The-Memory-Hierarchy-Explained.md)** — the other half of CPU performance — keeping the pipeline fed
+- **[How Operating Systems Work](How-Operating-Systems-Work.md)** — how the OS shares CPUs among many programs
+- **[Vertical vs Horizontal Scaling](../08-Scalability/Vertical-vs-Horizontal-Scaling.md)** — what "a bigger CPU" buys you at the system level
 
 ---
 

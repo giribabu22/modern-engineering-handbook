@@ -4,6 +4,48 @@
 
 ---
 
+> *“Security is a process, not a product.”*
+>
+> — **Bruce Schneier**, *Crypto-Gram* newsletter, 2000
+
+## At a Glance
+
+> **In one sentence:** HTTPS wraps HTTP in TLS, which uses certificates to prove a server's identity, public-key cryptography to agree on secret keys, and fast symmetric encryption to keep every byte private and tamper-proof in transit.
+
+**You'll learn**
+
+- What HTTPS protects — and what it doesn't
+- Symmetric vs. public-key (asymmetric) encryption and why TLS uses both
+- The TLS 1.3 handshake step by step
+- Certificates, certificate authorities, and the chain of trust
+- Forward secrecy, HSTS, and common TLS misconfigurations
+
+**Before you start:** [HTTP, TCP/IP, and the Protocol Stack](HTTP-TCP-IP-and-the-Protocol-Stack.md) · [How DNS Works](How-DNS-Works.md)
+
+**Reading time:** about 35 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+sequenceDiagram
+    participant C as Browser
+    participant S as Server
+    C->>S: ClientHello: supported ciphers + key share
+    S-->>C: ServerHello: chosen cipher + key share
+    S-->>C: Certificate + proof it owns the private key
+    S-->>C: Finished
+    Note over C: verify certificate chain and site name
+    C->>S: Finished
+    C->>S: encrypted HTTP request
+    S-->>C: encrypted HTTP response
+```
+
+*In one round trip, TLS 1.3 agrees on fresh keys and proves the server's identity; everything after that is encrypted.*
+
+---
+
 ## Introduction
 
 Imagine mailing a letter. With a plain postcard, anyone who handles it along the way — the postal worker, a nosy neighbor, someone who intercepts your mailbox — can read every word. Now imagine instead you seal that letter in a tamper-evident envelope, stamped with a wax seal that only you and the recipient can verify, and the envelope itself is impossible to open without leaving obvious evidence. That's the difference between **HTTP** and **HTTPS**.
@@ -891,6 +933,107 @@ The attacker can now mint certificates for *any* domain that will validate again
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Inspect a certificate in your browser.**
+Open https://www.wikipedia.org, click the padlock (or site-settings icon) next to the address, and open the certificate details. Find:
+- the **subject** (which names the certificate is valid for),
+- the **issuer** (which certificate authority signed it),
+- the **validity dates** (modern certificates last months, not years),
+- the **certificate chain** from the site up to a root authority your browser trusts.
+
+**Experiment 2 — Watch a handshake from the command line.**
+`openssl` is included with macOS, Linux, and Git Bash on Windows.
+
+```bash
+openssl s_client -connect www.wikipedia.org:443 -servername www.wikipedia.org < /dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+```
+
+Then run `openssl s_client -connect www.wikipedia.org:443 -servername www.wikipedia.org < /dev/null` without the second command and find the `Protocol` (e.g., TLSv1.3) and `Cipher` lines in the output.
+
+**Experiment 3 — See what HTTP exposes.**
+Run `curl -v http://neverssl.com` (Windows: `curl.exe -v http://neverssl.com`). Every header and byte of the response is plain text — anyone on the network path (public Wi-Fi, a compromised router) could read or change it. Then run `curl -v https://www.wikipedia.org -o /dev/null` (Windows: `-o NUL`) and find the TLS handshake lines and the certificate check in the verbose output.
+
+**Experiment 4 — Check HSTS.**
+`curl -sI https://www.wikipedia.org` (Windows: `curl.exe -sI ...`) and look for a `strict-transport-security` header — it tells browsers to use HTTPS for this site from now on, even if a user types `http://`.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. What three guarantees does TLS provide?</strong></summary>
+
+**Confidentiality** (others can't read the data), **integrity** (tampering is detected), and **authentication** (you are talking to the real server, proven by its certificate).
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. Why does TLS use both public-key and symmetric encryption?</strong></summary>
+
+Public-key cryptography solves the problem of agreeing on a secret with a stranger over an open network, but it's slow. Symmetric encryption (like AES) is very fast but needs a shared key. TLS uses public-key methods in the handshake to establish keys, then symmetric encryption for all the data.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. What does a certificate authority actually vouch for?</strong></summary>
+
+That the holder of the certificate's private key controls the domain name(s) in the certificate. It doesn't say the site is honest or safe — a phishing site can have a valid certificate for its own domain.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. How many round trips does a TLS 1.3 handshake add, compared with TLS 1.2?</strong></summary>
+
+TLS 1.3 needs **one** round trip (and zero for resumed sessions with 0-RTT, with replay caveats). TLS 1.2 typically needed two.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is forward secrecy?</strong></summary>
+
+Each session uses temporary (ephemeral) key-exchange keys that are thrown away afterward. If the server's long-term private key is stolen later, recorded past traffic still can't be decrypted. TLS 1.3 always provides it.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. With HTTPS, what can a network observer still see?</strong></summary>
+
+The IP addresses you connect to, roughly how much data is transferred and when, and often the domain name (via DNS queries and the SNI field in the handshake, unless encrypted DNS and Encrypted Client Hello are used). They can't see the URL path, headers, cookies, or content.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What is HSTS and what attack does it prevent?</strong></summary>
+
+HTTP Strict Transport Security tells the browser to always use HTTPS for a site. It prevents **SSL-stripping** attacks, where an attacker keeps a victim on plain HTTP by intercepting the first unencrypted request.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Piece | Role |
+|------|-----|
+| TLS | The security layer under HTTPS |
+| Certificate | Binds a domain name to a public key, signed by a CA |
+| Certificate authority (CA) | Trusted issuer; browsers ship a list of trusted roots |
+| Chain of trust | Site cert → intermediate CA → root CA |
+| Key exchange (ECDHE) | Agree on a shared secret over an open network |
+| Symmetric cipher (AES-GCM, ChaCha20) | Encrypts the actual data, fast |
+| SNI | Tells the server which site you want (usually visible) |
+| HSTS | Forces HTTPS for a domain |
+
+**TLS 1.3 in one line:** client hello (+ key share) → server hello (+ key share, certificate, proof) → encrypted data — one round trip.
+
+**Common mistakes:** expired certificates · missing intermediate certificates · allowing old protocols (SSL, TLS 1.0/1.1) · mixed HTTP content on HTTPS pages · disabling certificate verification in code (`verify=False`).
+
+---
+
 ## In the AI Era
 
 HTTPS protects data *in transit* to an AI provider — but the provider must decrypt your prompt to process it. Encryption in transit is not the same as confidentiality from the service you are calling.
@@ -935,6 +1078,14 @@ The standard pattern: clients call **your backend**, which authenticates the use
 9. **Certificate Transparency provides public accountability for CAs** — every publicly trusted certificate must be logged, allowing domain owners to detect unauthorized or rogue certificate issuance.
 
 10. **TLS protects data in transit, not data at rest or application-layer logic** — it's one essential layer of a defense-in-depth security posture, not a substitute for secure application code, access control, or data protection at rest.
+
+---
+
+## What to Read Next
+
+- **[How A Webpage Reaches Your Screen](How-A-Webpage-Reaches-Your-Screen.md)** — where the handshake fits in page-load time
+- **[Backup, Recovery, and Durability](../04-Data-And-Storage/Backup-Recovery-and-Durability.md)** — protecting data at rest, not just in transit
+- **[Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md)** — API keys, data handling, and trust boundaries for AI
 
 ---
 

@@ -4,6 +4,45 @@
 
 ---
 
+> *“Future users of large data banks must be protected from having to know how the data is organized in the machine.”*
+>
+> — **Edgar F. Codd**, "A Relational Model of Data for Large Shared Data Banks," 1970
+
+## At a Glance
+
+> **In one sentence:** A database stores data in fixed-size pages on disk, caches hot pages in memory, finds rows quickly with B-tree indexes, plans how to execute each query, and uses a write-ahead log and transactions to keep data correct through concurrency and crashes.
+
+**You'll learn**
+
+- How storage engines lay out data in pages and use a buffer pool
+- How B-tree indexes work, and why the wrong query can't use them
+- The query pipeline: parse, plan, optimize, execute
+- Transactions, ACID, and isolation levels
+- The write-ahead log (WAL) and crash recovery
+- Common failures: missing indexes, lock contention, deadlocks, full disks
+
+**Before you start:** [How File Systems Work](How-File-Systems-Work.md) · [The Memory Hierarchy Explained](../02-How-Computers-Work/The-Memory-Hierarchy-Explained.md)
+
+**Reading time:** about 30 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    Q["SQL statement"] --> P["Parser"] --> PL["Planner /<br/>optimizer"] --> EX["Executor"]
+    EX --> BP["Buffer pool<br/>(pages in memory)"]
+    EX --> WAL["Write-ahead log<br/>(appended, flushed on commit)"]
+    WAL --> DISK[("Disk")]
+    BP -- "written back later" --> DISK
+    IDX["B-tree indexes"] --- BP
+```
+
+*A write is logged before it changes data pages — that single rule makes transactions durable and crash recovery possible.*
+
+---
+
 ## Introduction
 
 Imagine a librarian who never forgets where a single book is, can find any book among ten million in under a millisecond, will never lose a book even if the building catches fire mid-shelving, and can let a thousand people check out and return books simultaneously without ever handing the same book to two people at once. That librarian is impossible for a human. It is not impossible for a database.
@@ -700,6 +739,126 @@ Key risks: cross-shard transactions become expensive or impossible with strict A
 
 ---
 
+## Hands-On Lab
+
+All you need is Python 3 — SQLite is built in. Save this as `db_lab.py` and run it.
+
+```python
+import sqlite3, time, random
+
+db = sqlite3.connect(":memory:")
+db.execute("CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INT, amount REAL)")
+db.executemany("INSERT INTO orders (customer_id, amount) VALUES (?, ?)",
+               ((random.randint(1, 100_000), random.random() * 100) for _ in range(1_000_000)))
+db.commit()
+
+def timed(sql):
+    plan = db.execute("EXPLAIN QUERY PLAN " + sql).fetchall()
+    start = time.perf_counter()
+    for _ in range(100):
+        db.execute(sql).fetchall()
+    ms = (time.perf_counter() - start) / 100 * 1000
+    print(f"{ms:8.3f} ms   plan: {plan[0][-1]}")
+
+query = "SELECT SUM(amount) FROM orders WHERE customer_id = 4242"
+timed(query)                                              # 1) no index
+db.execute("CREATE INDEX idx_orders_customer ON orders(customer_id)")
+timed(query)                                              # 2) with index
+
+# 3) Transactions are all-or-nothing
+db.execute("CREATE TABLE accounts (id INT PRIMARY KEY, balance INT CHECK (balance >= 0))")
+db.execute("INSERT INTO accounts VALUES (1, 100), (2, 50)")
+db.commit()
+try:
+    with db:                                              # one transaction
+        db.execute("UPDATE accounts SET balance = balance + 500 WHERE id = 2")
+        db.execute("UPDATE accounts SET balance = balance - 500 WHERE id = 1")  # violates CHECK
+except sqlite3.IntegrityError as e:
+    print("transfer failed:", e)
+print(db.execute("SELECT * FROM accounts").fetchall())   # both balances unchanged
+```
+
+**What to notice**
+1. Without an index, the plan says `SCAN orders` — every row is read. With the index, it says `SEARCH orders USING INDEX idx_orders_customer` and the query becomes hundreds to thousands of times faster.
+2. The failed transfer leaves both accounts at their original balances. The credit to account 2 was rolled back along with the failed debit — that's **atomicity**.
+3. Try replacing `customer_id = 4242` with `customer_id + 0 = 4242`. The plan goes back to `SCAN`: wrapping an indexed column in an expression usually prevents the index from being used.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. Why do databases read and write in pages instead of individual rows?</strong></summary>
+
+Storage devices transfer data in blocks, and each trip to disk is expensive. Reading a whole page (often 4–16 KB) brings many nearby rows at once, and pages can be cached in the buffer pool as a unit.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. How does a B-tree index make a lookup fast?</strong></summary>
+
+It keeps keys sorted in a wide, shallow tree. Each node holds many keys and points to children, so finding one key among millions touches only 3–4 pages instead of scanning the whole table.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why can an index make writes slower?</strong></summary>
+
+Every insert, update, or delete must also update each affected index. More indexes mean faster reads for those queries but more work (and more storage) on every write.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What does each letter of ACID mean?</strong></summary>
+
+**Atomicity** — all or nothing. **Consistency** — constraints hold before and after. **Isolation** — concurrent transactions don't see each other's partial work (to the degree the isolation level promises). **Durability** — once committed, data survives a crash.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is the write-ahead log, and why is it written first?</strong></summary>
+
+An append-only record of every change, written and flushed to disk *before* the changed data pages. After a crash, the database replays the log to redo committed changes and undo incomplete ones. Appending to a log is also much faster than updating pages scattered across the disk.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. What is an N+1 query problem?</strong></summary>
+
+Code loads a list (1 query) and then runs another query for each item (N queries) — for example, fetching the author of each of 100 posts one by one. Fix it with a join or a single `WHERE id IN (...)` query.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. What is a deadlock?</strong></summary>
+
+Two transactions each hold a lock the other needs, so neither can continue. The database detects the cycle and aborts one. Reduce deadlocks by touching rows in a consistent order and keeping transactions short.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+| Concept | Remember it as |
+|--------|---------------|
+| Page | Unit of storage, typically 4–16 KB |
+| Buffer pool | In-memory cache of pages |
+| B-tree index | Sorted, shallow tree; lookups touch few pages |
+| Query planner | Chooses how to run your query (check with `EXPLAIN`) |
+| Transaction | Group of changes that succeed or fail together |
+| WAL | Log written before data; enables crash recovery and replication |
+| Isolation levels | Read committed → repeatable read → serializable (more safety, less concurrency) |
+| MVCC | Readers see a snapshot, so they don't block writers |
+
+**Indexing rules:** index columns used in `WHERE`, `JOIN`, and `ORDER BY` of frequent queries · put the most selective equality columns first in composite indexes · don't wrap indexed columns in functions · every index slows writes.
+
+**Debug a slow query:** `EXPLAIN` / `EXPLAIN ANALYZE` → look for full scans on big tables → add or fix the index → measure again.
+
+---
+
 ## In the AI Era
 
 Two AI-era developments touch database internals directly.
@@ -729,6 +888,14 @@ Two AI-era developments touch database internals directly.
 8. No storage engine is universally best — the right choice depends on your read:write ratio, consistency requirements, and scale.
 9. Database internals knowledge is directly actionable: it explains why a query is slow, why a crash didn't lose data, and why an index didn't help.
 10. Operational practices (backups, statistics maintenance, vacuum/compaction, monitoring) matter as much as the underlying algorithms — a theoretically sound database can still lose data or degrade badly if operated carelessly.
+
+---
+
+## What to Read Next
+
+- **[SQL vs NoSQL: The Real Difference](SQL-vs-NoSQL-The-Real-Difference.md)** — when a different data model fits better
+- **[Data Replication Strategies](Data-Replication-Strategies.md)** — how the WAL becomes replication
+- **[Database Sharding](../08-Scalability/Database-Sharding.md)** — what to do when one database server isn't enough
 
 ---
 

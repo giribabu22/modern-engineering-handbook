@@ -4,6 +4,41 @@
 
 ---
 
+> *“The power of the Web is in its universality. Access by everyone regardless of disability is an essential aspect.”*
+>
+> — **Tim Berners-Lee**, W3C Web Accessibility Initiative launch, 1997
+
+## At a Glance
+
+> **In one sentence:** Loading a web page chains together a DNS lookup, TCP and TLS handshakes, an HTTP request, server processing, and the browser's parse–style–layout–paint pipeline — and page speed depends on how many of those round trips and bytes you can remove.
+
+**You'll learn**
+
+- Every step from typing a URL to pixels on screen
+- What the browser does: parsing HTML, building the DOM and CSSOM, layout, paint, compositing
+- Why render-blocking CSS and JavaScript slow pages down
+- The Core Web Vitals and what they measure
+- Caching, CDNs, and compression for faster pages
+
+**Before you start:** [How DNS Works](How-DNS-Works.md) · [HTTP, TCP/IP, and the Protocol Stack](HTTP-TCP-IP-and-the-Protocol-Stack.md)
+
+**Reading time:** about 40 minutes
+
+---
+
+## The Big Picture
+
+```mermaid
+flowchart LR
+    U["Type URL"] --> D["DNS lookup"] --> T["TCP handshake"] --> S["TLS handshake"] --> H["HTTP request"]
+    H --> SV["Server builds<br/>the response"] --> B["First byte<br/>arrives"]
+    B --> P["Parse HTML<br/>fetch CSS, JS, images"] --> RT["DOM + CSSOM<br/>render tree"] --> LY["Layout"] --> PT["Paint and<br/>composite"]
+```
+
+*A page load is a chain of network round trips followed by the browser's rendering pipeline — every link in the chain adds time.*
+
+---
+
 ## Introduction
 
 Imagine ordering a custom-built house. You don't just get a finished building teleported to your lot. First, someone has to find the architect (look up an address). Then a crew has to physically travel to the site (establish a connection). Then they verify the property deed is legitimate and lock the gate behind them (secure the connection). Then the architect hands over blueprints (the HTML). Contractors read the blueprints and erect a skeleton frame (the DOM). Interior designers apply paint, wallpaper, and furniture placement rules from a separate style guide (CSS, producing the CSSOM). The two are merged into a single plan of what actually gets built and where (the render tree). Electricians wire in appliances that can change the layout at runtime (JavaScript). Finally, workers measure exact room dimensions (layout), apply finishes (paint), and stack pre-built modular rooms onto the foundation using a crane (compositing) — and only then can you walk through the front door and see the finished home.
@@ -1045,6 +1080,105 @@ A strong answer covers: integrate Lighthouse CI (or WebPageTest API) into the de
 
 ---
 
+## Hands-On Lab
+
+**Experiment 1 — Time each network phase.**
+
+- **macOS/Linux:**
+  ```bash
+  curl -o /dev/null -s -w "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s\n" https://www.wikipedia.org
+  ```
+- **Windows (PowerShell):** use `curl.exe` (the real curl, included with Windows 10 and later) and `-o NUL`:
+  ```powershell
+  curl.exe -o NUL -s -w "dns=%{time_namelookup}s connect=%{time_connect}s tls=%{time_appconnect}s first_byte=%{time_starttransfer}s total=%{time_total}s`n" https://www.wikipedia.org
+  ```
+
+Each number is cumulative since the start: DNS lookup → TCP connected → TLS handshake done → first byte of the response → finished. Run it twice: the second DNS time is often near zero because the answer was cached.
+
+**Experiment 2 — Read a page's waterfall.**
+Open a news site in Chrome or Edge, press F12, open the **Network** tab, tick *Disable cache*, and reload. Then:
+- Sort by the *Waterfall* column and find the first request (the HTML document). Hover over its bar to see DNS, connection, TLS, waiting (server time), and download.
+- Count how many requests the page makes and the total transferred size (bottom bar).
+- Find which scripts or stylesheets load before the page first appears — those are render-blocking.
+
+**Experiment 3 — Measure Core Web Vitals.**
+In DevTools, open **Lighthouse**, select *Performance*, and run a report. Read the Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), and Total Blocking Time. Open the "Opportunities" list: most suggestions map to steps in this chapter (fewer bytes, fewer round trips, less blocking JavaScript).
+
+**Experiment 4 — See what happens without JavaScript.**
+In DevTools press Ctrl+Shift+P (Cmd+Shift+P on macOS), type "Disable JavaScript", and reload. Server-rendered pages still show content; purely client-rendered apps may show a blank page.
+
+---
+
+## Test Yourself
+
+*Answer each question in your head or on paper first, then open the answer to check.*
+
+<details markdown="1">
+<summary><strong>1. List the main network steps before the browser receives the first byte of HTML.</strong></summary>
+
+DNS lookup (name → IP address), TCP handshake (connection), TLS handshake (encryption keys and certificate check), then sending the HTTP request and waiting for the server to generate and start sending the response.
+
+</details>
+
+<details markdown="1">
+<summary><strong>2. What are the DOM and the CSSOM?</strong></summary>
+
+The **DOM** is the browser's tree of the page's HTML elements. The **CSSOM** is the tree of style rules from the CSS. The browser combines them into a render tree to decide what to show and how.
+
+</details>
+
+<details markdown="1">
+<summary><strong>3. Why is CSS render-blocking?</strong></summary>
+
+The browser won't paint content until it knows how to style it — otherwise the page would flash unstyled and then jump. So stylesheets in the `<head>` must download and be parsed before the first paint.
+
+</details>
+
+<details markdown="1">
+<summary><strong>4. What do the `defer` and `async` attributes on a script tag do?</strong></summary>
+
+Both download the script without blocking HTML parsing. `async` runs it as soon as it arrives (order not guaranteed). `defer` runs it after the HTML is parsed, in document order. Plain scripts block parsing while they download and run.
+
+</details>
+
+<details markdown="1">
+<summary><strong>5. What is the difference between layout and paint?</strong></summary>
+
+**Layout** (reflow) computes the size and position of every element. **Paint** fills in pixels — text, colors, images, borders. Changing an element's width triggers layout; changing only its color triggers paint only; `transform` and `opacity` changes can often skip both and be handled by the compositor.
+
+</details>
+
+<details markdown="1">
+<summary><strong>6. Name the three Core Web Vitals.</strong></summary>
+
+**LCP** (Largest Contentful Paint) — loading speed; **INP** (Interaction to Next Paint) — responsiveness to input; **CLS** (Cumulative Layout Shift) — visual stability.
+
+</details>
+
+<details markdown="1">
+<summary><strong>7. Why does a CDN make pages faster?</strong></summary>
+
+It serves cached content from servers physically closer to the user, cutting round-trip time for every handshake and request, and it reduces load on the origin server.
+
+</details>
+
+---
+
+## Cheat Sheet
+
+**The journey:** URL → DNS → TCP → TLS → HTTP request → server work → first byte → parse HTML → fetch CSS/JS/images → build DOM + CSSOM → layout → paint → composite → interactive.
+
+| Metric | Measures | Good target |
+|--------|---------|------------|
+| TTFB | Server + network until first byte | < ~0.8 s |
+| LCP | When the main content appears | ≤ 2.5 s |
+| INP | Delay responding to user input | ≤ 200 ms |
+| CLS | Unexpected layout movement | ≤ 0.1 |
+
+**Speed checklist:** use a CDN · enable compression (Brotli/gzip) · cache static files with long lifetimes · reduce and `defer` JavaScript · inline critical CSS · size and lazy-load images · reserve space for images and ads to avoid layout shift · use HTTP/2 or HTTP/3.
+
+---
+
 ## In the AI Era
 
 Two things have changed about the journey from server to screen.
@@ -1083,6 +1217,14 @@ Two things have changed about the journey from server to screen.
 9. **Real business metrics are downstream of pipeline efficiency** — Walmart's and Pinterest's data both show measurable conversion/engagement impact from render pipeline performance, making this an executive-relevant concern, not purely a technical one.
 
 10. **Choosing a rendering strategy (CSR/SSR/SSG/ISR) is an architectural tradeoff, not a default** — the right choice depends on content volatility, SEO needs, interactivity requirements, and the actual devices/networks your users are on.
+
+---
+
+## What to Read Next
+
+- **[How HTTPS Protects Your Data](How-HTTPS-Protects-Your-Data.md)** — what the TLS handshake in the waterfall actually does
+- **[How Caching Works](../05-Distributed-Systems/How-Caching-Works.md)** — browser, CDN, and server caches in depth
+- **[What Happens When You Press A Key](../02-How-Computers-Work/What-Happens-When-You-Press-A-Key.md)** — the event loop and rendering from the input side
 
 ---
 
