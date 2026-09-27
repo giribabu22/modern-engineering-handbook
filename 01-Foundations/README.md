@@ -8,9 +8,9 @@ This section establishes the mindset, problem-solving frameworks, and foundation
 
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
-| 1 | [Why Software Exists](Why-Software-Exists.md) | ✅ Complete | 45 minutes |
-| 2 | [How To Think Like An Engineer](How-To-Think-Like-An-Engineer.md) | ✅ Complete | 45 minutes |
-| 3 | [How To Solve Problems Systematically](How-To-Solve-Problems-Systematically.md) | ✅ Complete | 45 minutes |
+| 1 | [Why Software Exists](Why-Software-Exists.md) | ✅ Complete | 35 minutes |
+| 2 | [How To Think Like An Engineer](How-To-Think-Like-An-Engineer.md) | ✅ Complete | 35 minutes |
+| 3 | [How To Solve Problems Systematically](How-To-Solve-Problems-Systematically.md) | ✅ Complete | 35 minutes |
 | 4 | How To Read Technical Documentation | 📝 Planned | — |
 | 5 | The Engineering Mindset: Tradeoffs and Decisions | 📝 Planned | — |
 | 6 | Learning How To Learn With AI Tutors | 📝 Planned | — |

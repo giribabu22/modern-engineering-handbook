@@ -8,11 +8,11 @@ This section covers databases, file systems, replication, and the fundamental tr
 
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
-| 1 | [How Databases Work](How-Databases-Work.md) | ✅ Complete | 40 minutes |
-| 2 | [SQL vs NoSQL: The Real Difference](SQL-vs-NoSQL-The-Real-Difference.md) | ✅ Complete | 40 minutes |
-| 3 | [How File Systems Work](How-File-Systems-Work.md) | ✅ Complete | 45 minutes |
-| 4 | [Data Replication Strategies](Data-Replication-Strategies.md) | ✅ Complete | 45 minutes |
-| 5 | [Backup, Recovery, and Durability](Backup-Recovery-and-Durability.md) | ✅ Complete | 50 minutes |
+| 1 | [How Databases Work](How-Databases-Work.md) | ✅ Complete | 30 minutes |
+| 2 | [SQL vs NoSQL: The Real Difference](SQL-vs-NoSQL-The-Real-Difference.md) | ✅ Complete | 30 minutes |
+| 3 | [How File Systems Work](How-File-Systems-Work.md) | ✅ Complete | 35 minutes |
+| 4 | [Data Replication Strategies](Data-Replication-Strategies.md) | ✅ Complete | 35 minutes |
+| 5 | [Backup, Recovery, and Durability](Backup-Recovery-and-Durability.md) | ✅ Complete | 35 minutes |
 | 6 | Vector Search and Embeddings | 📝 Planned | — |
 
 ## Key Ideas

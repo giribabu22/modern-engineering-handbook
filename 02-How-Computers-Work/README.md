@@ -8,9 +8,9 @@ This section demystifies what happens inside the machine when your code runs. Yo
 
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
-| 1 | [What Happens When You Press A Key](What-Happens-When-You-Press-A-Key.md) | ✅ Complete | 35 minutes |
+| 1 | [What Happens When You Press A Key](What-Happens-When-You-Press-A-Key.md) | ✅ Complete | 45 minutes |
 | 2 | [How Memory Works](How-Memory-Works.md) | ✅ Complete | 45 minutes |
-| 3 | [How CPUs Execute Instructions](How-CPUs-Execute-Instructions.md) | ✅ Complete | 40 minutes |
+| 3 | [How CPUs Execute Instructions](How-CPUs-Execute-Instructions.md) | ✅ Complete | 50 minutes |
 | 4 | [How Operating Systems Work](How-Operating-Systems-Work.md) | ✅ Complete | 50 minutes |
 | 5 | [The Memory Hierarchy: Registers, Cache, RAM, Disk](The-Memory-Hierarchy-Explained.md) | ✅ Complete | 40 minutes |
 | 6 | How GPUs and AI Accelerators Work | 📝 Planned | — |

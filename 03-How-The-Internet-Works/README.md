@@ -10,9 +10,9 @@ This section covers the fundamentals of networking — from the physical layer o
 |---|---------|--------|-------------------|
 | 1 | [How The Internet Really Works](How-The-Internet-Really-Works.md) | ✅ Complete | 45 minutes |
 | 2 | [How A Webpage Reaches Your Screen](How-A-Webpage-Reaches-Your-Screen.md) | ✅ Complete | 40 minutes |
-| 3 | [How DNS Works](How-DNS-Works.md) | ✅ Complete | 40 minutes |
-| 4 | [How HTTPS Protects Your Data](How-HTTPS-Protects-Your-Data.md) | ✅ Complete | 45 minutes |
-| 5 | [HTTP, TCP/IP, and the Protocol Stack](HTTP-TCP-IP-and-the-Protocol-Stack.md) | ✅ Complete | 50 minutes |
+| 3 | [How DNS Works](How-DNS-Works.md) | ✅ Complete | 30 minutes |
+| 4 | [How HTTPS Protects Your Data](How-HTTPS-Protects-Your-Data.md) | ✅ Complete | 35 minutes |
+| 5 | [HTTP, TCP/IP, and the Protocol Stack](HTTP-TCP-IP-and-the-Protocol-Stack.md) | ✅ Complete | 45 minutes |
 | 6 | Streaming, WebSockets, and Long-Lived Connections | 📝 Planned | — |
 
 ## Key Ideas

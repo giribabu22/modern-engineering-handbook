@@ -8,11 +8,11 @@ This is the hardest section in the handbook — and the most important. Distribu
 
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
-| 1 | [Why Distributed Systems Are Hard](Why-Distributed-Systems-Are-Hard.md) | ✅ Complete | 45 minutes |
-| 2 | [CAP Theorem Explained](CAP-Theorem-Explained.md) | ✅ Complete | 40 minutes |
-| 3 | [Consistency vs Availability](Consistency-vs-Availability.md) | ✅ Complete | 45 minutes |
+| 1 | [Why Distributed Systems Are Hard](Why-Distributed-Systems-Are-Hard.md) | ✅ Complete | 35 minutes |
+| 2 | [CAP Theorem Explained](CAP-Theorem-Explained.md) | ✅ Complete | 30 minutes |
+| 3 | [Consistency vs Availability](Consistency-vs-Availability.md) | ✅ Complete | 35 minutes |
 | 4 | How Large Systems Handle Failures | 📝 Planned | — |
-| 5 | [How Caching Works](How-Caching-Works.md) | ✅ Complete | 45 minutes |
+| 5 | [How Caching Works](How-Caching-Works.md) | ✅ Complete | 25 minutes |
 | 6 | Consensus Algorithms (Paxos, Raft) | 📝 Planned | — |
 | 7 | Distributed Databases | 📝 Planned | — |
 | 8 | Durable Execution and Long-Running Workflows | 📝 Planned | — |

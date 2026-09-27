@@ -53,7 +53,7 @@ AI systems are also built from the same parts as every other system. An LLM call
 | [08 — Scalability](08-Scalability/README.md) | From 1 user to 1 billion users | ✅ 5 of 5 chapters |
 | [09 — Security](09-Security/README.md) | How systems break and how to protect them | 📝 Planned |
 | [10 — Reliability](10-Reliability/README.md) | Building systems that survive failure — SRE, chaos engineering, DR, observability | ✅ 6 of 6 chapters |
-| [11 — Production Engineering](11-Production-Engineering/README.md) | Operating software in the real world | 📝 Planned |
+| [11 — Production Engineering](11-Production-Engineering/README.md) | Operating software in the real world — deploys, incidents, capacity, SLOs, AI ops | ✅ 6 of 6 chapters |
 | [12 — Engineering Leadership](12-Engineering-Leadership/README.md) | Technical decision-making and mentorship | 📝 Planned |
 | [13 — Case Studies](13-Case-Studies/README.md) | How Google, Netflix, Amazon, and others actually work | 📝 Planned |
 | [14 — Learning Paths](14-Learning-Paths/README.md) | Guided reading paths for different roles | ✅ Available |

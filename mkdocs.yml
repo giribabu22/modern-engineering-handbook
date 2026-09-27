@@ -132,6 +132,14 @@ nav:
       - Disaster Recovery Explained: 10-Reliability/Disaster-Recovery-Explained.md
       - Observability: 10-Reliability/Observability-Monitoring-Alerting-And-Debugging.md
       - Graceful Degradation for AI Features: 10-Reliability/Graceful-Degradation-For-AI-Features.md
+  - Production:
+      - 11-Production-Engineering/index.md
+      - The Life of a Production Request: 11-Production-Engineering/The-Life-Of-A-Production-Request.md
+      - Deployments: 11-Production-Engineering/Deployments-Strategies-And-Risks.md
+      - Incident Response and Postmortems: 11-Production-Engineering/Incident-Response-And-Postmortems.md
+      - Capacity Planning in Practice: 11-Production-Engineering/Capacity-Planning-In-Practice.md
+      - SLOs in Practice: 11-Production-Engineering/SLOs-In-Practice.md
+      - Operating LLM Features: 11-Production-Engineering/Operating-LLM-Features.md
   - AI Engineering:
       - 15-AI-Era-Engineering/index.md
       - How LLMs Actually Work: 15-AI-Era-Engineering/How-LLMs-Actually-Work.md
@@ -143,6 +151,5 @@ nav:
       - Learning Paths: 14-Learning-Paths/index.md
       - Software Architecture: 07-Software-Architecture/index.md
       - Security: 09-Security/index.md
-      - Production Engineering: 11-Production-Engineering/index.md
       - Engineering Leadership: 12-Engineering-Leadership/index.md
       - Case Studies: 13-Case-Studies/index.md

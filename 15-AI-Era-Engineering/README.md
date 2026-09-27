@@ -10,12 +10,12 @@ The theme throughout is continuity. Tokens and context windows are a resource bu
 
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
-| 1 | [How LLMs Actually Work](How-LLMs-Actually-Work.md) | ✅ Complete | 20 minutes |
-| 2 | [Engineering With AI Assistants](Engineering-With-AI-Assistants.md) | ✅ Complete | 15 minutes |
-| 3 | [Building LLM-Powered Systems: Retrieval, Tools, and Agents](Building-LLM-Powered-Systems.md) | ✅ Complete | 20 minutes |
-| 4 | [Evaluating AI Systems](Evaluating-AI-Systems.md) | ✅ Complete | 15 minutes |
-| 5 | [Securing AI Systems](Securing-AI-Systems.md) | ✅ Complete | 20 minutes |
-| 6 | Operating AI in Production: Cost, Latency, and Observability | 📝 Planned | — |
+| 1 | [How LLMs Actually Work](How-LLMs-Actually-Work.md) | ✅ Complete | 15 minutes |
+| 2 | [Engineering With AI Assistants](Engineering-With-AI-Assistants.md) | ✅ Complete | 10 minutes |
+| 3 | [Building LLM-Powered Systems: Retrieval, Tools, and Agents](Building-LLM-Powered-Systems.md) | ✅ Complete | 10 minutes |
+| 4 | [Evaluating AI Systems](Evaluating-AI-Systems.md) | ✅ Complete | 10 minutes |
+| 5 | [Securing AI Systems](Securing-AI-Systems.md) | ✅ Complete | 15 minutes |
+| 6 | [Operating LLM Features: Cost, Latency, and Quality](../11-Production-Engineering/Operating-LLM-Features.md) *(in Section 11)* | ✅ Complete | 10 minutes |
 | 7 | Self-Hosting Models: GPUs, Serving, and Quantization | 📝 Planned | — |
 | 8 | Fine-Tuning: When and How | 📝 Planned | — |
 

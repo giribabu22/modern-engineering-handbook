@@ -166,7 +166,25 @@ README.md:
   description: "How to keep AI features reliable: degradation ladders, deadlines, output validation, model fallbacks, cached and non-AI experiences, and kill switches."
 11-Production-Engineering/README.md:
   title: "Production Engineering — Deployments, Incidents, and SLOs"
-  description: "Operating software in production — deployment strategies, incident response, postmortems, SLOs and error budgets, and operating LLM features."
+  description: "Operating software in production: request paths and latency budgets, safe deployments, incident response, capacity planning, SLOs, and running AI features."
+11-Production-Engineering/The-Life-Of-A-Production-Request.md:
+  title: "The Life of a Production Request — Latency Budgets and Tail Latency"
+  description: "Follow one request through DNS, CDN, load balancers, services, caches, and databases: latency budgets, deadline propagation, fan-out, and hedged requests."
+11-Production-Engineering/Deployments-Strategies-And-Risks.md:
+  title: "Deployment Strategies Explained — Canary, Blue-Green, Feature Flags"
+  description: "Safe deployments: rolling, blue-green, and canary releases, automated canary analysis, feature flags, expand-and-contract migrations, and DORA metrics."
+11-Production-Engineering/Incident-Response-And-Postmortems.md:
+  title: "Incident Response and Blameless Postmortems — A Practical Guide"
+  description: "How to run production incidents: severity levels, incident commander and roles, mitigation first, communication, blameless postmortems, and on-call."
+11-Production-Engineering/Capacity-Planning-In-Practice.md:
+  title: "Capacity Planning in Practice — Forecasting, Queueing, Load Testing"
+  description: "Practical capacity planning: demand forecasting, capacity per instance, the queueing knee, headroom and N+1, load testing, cloud quotas, and cost."
+11-Production-Engineering/SLOs-In-Practice.md:
+  title: "SLOs in Practice — Defining SLIs, Targets, and Error-Budget Policies"
+  description: "How to implement SLOs: critical user journeys, good vs. valid events, measurement points, choosing targets, error-budget policies, and SLO reviews."
+11-Production-Engineering/Operating-LLM-Features.md:
+  title: "Operating LLM Features — Cost, Latency, and Quality in Production"
+  description: "How to run AI features in production: token cost attribution, latency (TTFT), quality monitoring, prompt and model versioning, caching, and model routing."
 12-Engineering-Leadership/README.md:
   title: "Engineering Leadership — Decisions, Design Docs, Mentoring"
   description: "Technical decision-making, design documents, code review, mentoring, estimation, and leading engineering teams through AI adoption."

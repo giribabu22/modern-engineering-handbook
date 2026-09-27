@@ -73,7 +73,7 @@ This section provides guided reading paths for different roles and goals. Each p
 11. [Rate Limiting and Throttling](../08-Scalability/Rate-Limiting-and-Throttling.md) and [How Load Balancing Works](../08-Scalability/How-Load-Balancing-Works.md)
 12. [Auto-scaling and Capacity Planning](../08-Scalability/Auto-scaling-and-Capacity-Planning.md)
 13. [Designing An AI Assistant Over Private Data](../06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md) and [Designing An AI Gateway](../06-System-Design/Designing-An-AI-Gateway.md) — two complete AI system designs
-14. 📝 Operating LLM Features: Cost, Latency, and Quality (Section 11)
+14. [Operating LLM Features: Cost, Latency, and Quality](../11-Production-Engineering/Operating-LLM-Features.md)
 
 **Capstone project:** Build a question-answering assistant over a set of documents you know well (your team's docs, a product manual, this handbook). Include hybrid retrieval with citations, an eval set of at least 30 questions, a token budget per user, trace logging, and a written threat model using the lethal-trifecta test.
 
@@ -132,7 +132,11 @@ This section provides guided reading paths for different roles and goals. Each p
 11. [Observability: Monitoring, Alerting, and Debugging](../10-Reliability/Observability-Monitoring-Alerting-And-Debugging.md)
 12. [Disaster Recovery Explained](../10-Reliability/Disaster-Recovery-Explained.md)
 13. [Graceful Degradation for AI Features](../10-Reliability/Graceful-Degradation-For-AI-Features.md)
-14. 📝 Section 11 (Production Engineering)
+14. [The Life of a Production Request](../11-Production-Engineering/The-Life-Of-A-Production-Request.md)
+15. [Deployments: Strategies and Risks](../11-Production-Engineering/Deployments-Strategies-And-Risks.md)
+16. [Incident Response and Postmortems](../11-Production-Engineering/Incident-Response-And-Postmortems.md)
+17. [SLOs in Practice](../11-Production-Engineering/SLOs-In-Practice.md)
+18. [Capacity Planning in Practice](../11-Production-Engineering/Capacity-Planning-In-Practice.md)
 
 ---
 

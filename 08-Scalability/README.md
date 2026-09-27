@@ -9,10 +9,10 @@ This section covers how systems grow — and why many fail before they reach pro
 | # | Chapter | Status | Est. Reading Time |
 |---|---------|--------|-------------------|
 | 1 | [Vertical vs Horizontal Scaling](Vertical-vs-Horizontal-Scaling.md) | ✅ Complete | 40 minutes |
-| 2 | [How Load Balancing Works](How-Load-Balancing-Works.md) | ✅ Complete | 45 minutes |
-| 3 | [Database Sharding](Database-Sharding.md) | ✅ Complete | 50 minutes |
+| 2 | [How Load Balancing Works](How-Load-Balancing-Works.md) | ✅ Complete | 30 minutes |
+| 3 | [Database Sharding](Database-Sharding.md) | ✅ Complete | 40 minutes |
 | 4 | [Rate Limiting and Throttling](Rate-Limiting-and-Throttling.md) | ✅ Complete | 40 minutes |
-| 5 | [Auto-scaling and Capacity Planning](Auto-scaling-and-Capacity-Planning.md) | ✅ Complete | 45 minutes |
+| 5 | [Auto-scaling and Capacity Planning](Auto-scaling-and-Capacity-Planning.md) | ✅ Complete | 40 minutes |
 
 ## Key Ideas
 
