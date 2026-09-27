@@ -891,6 +891,29 @@ The attacker can now mint certificates for *any* domain that will validate again
 
 ---
 
+## In the AI Era
+
+HTTPS protects data *in transit* to an AI provider — but the provider must decrypt your prompt to process it. Encryption in transit is not the same as confidentiality from the service you are calling.
+
+Questions every engineer should be able to answer before sending data to a model API:
+
+- Is prompt and output data retained? For how long? Is it used for training?
+- In which regions is data processed and stored (data residency)?
+- Is there a zero-retention or enterprise agreement in place for sensitive data?
+- Should this data go to an external provider at all, or to a self-hosted model?
+
+**API keys are bearer credentials.** Anyone who has the key *is* you, and model usage costs real money. Common mistakes:
+
+- Embedding a model API key in a mobile app or front-end bundle (it will be extracted).
+- Committing keys to repositories — including keys pasted by an AI assistant into a config file.
+- Sharing one key across all services, so a leak can't be contained or attributed.
+
+The standard pattern: clients call **your backend**, which authenticates the user, applies rate limits and policy, and then calls the provider with a server-side key. Many organizations centralize this in an internal **AI gateway**, often with mutual TLS between internal services.
+
+**Try it:** Search your repositories' history (not just the current files) for strings that look like API keys. Secret scanners exist for this; run one.
+
+---
+
 ## Key Takeaways
 
 1. **HTTPS is HTTP wrapped in TLS**, providing confidentiality (encryption), integrity (tamper detection), and authenticity (certificate-based identity verification) — three guarantees plain HTTP has none of.

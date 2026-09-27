@@ -961,6 +961,32 @@ Virtual memory and paging are what make safe multi-tenancy on shared hardware po
 
 ---
 
+## In the AI Era
+
+Memory is the first wall every AI system hits. Two numbers dominate:
+
+**1. Model weights.** Size ≈ parameters × bytes per parameter.
+
+| Model size | 16-bit (FP16/BF16) | 8-bit | 4-bit |
+|-----------|-------------------|-------|-------|
+| 7B params | ~14 GB | ~7 GB | ~3.5 GB |
+| 70B params | ~140 GB | ~70 GB | ~35 GB |
+
+**Quantization** — storing weights with fewer bits — is a memory-for-accuracy tradeoff, just like choosing a smaller data type in any program.
+
+**2. The KV cache.** While generating, the model stores intermediate attention state (keys and values) for every token in the conversation so it doesn't recompute them. This cache grows with *context length × number of concurrent requests*. Long contexts and many users can exhaust GPU memory even when the weights fit comfortably.
+
+**Virtual memory ideas came back.** Early LLM servers allocated one large contiguous block per request for its KV cache, wasting memory through fragmentation — the same problem operating systems solved decades ago. The vLLM project's *PagedAttention* applies OS-style paging: the KV cache is split into fixed-size blocks mapped through a table, so memory is allocated on demand and shared between requests. Understanding page tables made that idea obvious to the people who invented it.
+
+**Practical implications for engineers:**
+- "Out of memory" on a GPU is a capacity-planning problem: weights + KV cache + activations must fit.
+- Longer context windows are not free — they cost memory per request, which reduces how many users one GPU can serve.
+- Memory leaks in long-running agent processes (unbounded conversation histories held in RAM) are ordinary memory leaks, with ordinary fixes.
+
+**Try it:** Estimate whether a 70B model at 4-bit quantization fits on a single 48 GB GPU, leaving 20% for KV cache and overhead.
+
+---
+
 ## Key Takeaways
 
 1. **Physical DRAM is a leaky, destructive-read medium** — each bit is one transistor and one capacitor, requiring constant refresh (typically every ~64ms) to avoid data loss, a fact that traces directly back to Robert Dennard's 1966-1968 invention at IBM.

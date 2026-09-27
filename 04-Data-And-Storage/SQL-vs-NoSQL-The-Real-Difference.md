@@ -639,6 +639,26 @@ I'd explain that "using one database for everything" doesn't eliminate the trade
 
 ---
 
+## In the AI Era
+
+The AI era added a new contender to this debate: the **vector database**. The same reasoning from this chapter applies — choose by access pattern and operational cost, not by hype.
+
+| Option | When it fits |
+|--------|-------------|
+| Vector support in your existing database (e.g., PostgreSQL + pgvector) | Moderate scale; you want vectors, metadata filters, and transactional data in one place with one backup story |
+| Search engines with vector support | You need strong keyword search *and* vector search together |
+| Dedicated vector databases | Very large collections, high query rates, or specialized index tuning |
+
+Practical lessons that have emerged:
+
+- **Hybrid search usually beats pure vector search.** Combining keyword matching (good for exact names, codes, and error messages) with semantic similarity gives better retrieval than either alone.
+- **Metadata filtering is essential** — by tenant, permissions, date, or document type — and weak filtering support is a common reason teams outgrow a tool.
+- **Adding a new database adds operational burden:** backups, monitoring, access control, and a replication pipeline from your source of truth. Start with what you already run unless you have evidence it won't work.
+
+**Try it:** For a hypothetical support-chatbot knowledge base of 50,000 articles, argue for one of the three options above, including how you'd back it up and keep it in sync.
+
+---
+
 ## Key Takeaways
 
 1. SQL vs NoSQL is not "better vs worse" — it's a genuine tradeoff between query flexibility/enforced correctness and horizontal write scalability/access-pattern-specific speed.

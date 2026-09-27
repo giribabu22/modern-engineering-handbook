@@ -731,6 +731,31 @@ I'd explain that a single global lock reintroduces a single point of failure and
 
 ---
 
+## In the AI Era
+
+An LLM call is the ultimate unreliable remote call. It has every problem from this chapter, and adds one more:
+
+| Classic distributed-systems problem | LLM version |
+|------------------------------------|-------------|
+| Network failures | Timeouts, 5xx errors, provider outages |
+| Variable latency | Seconds to minutes depending on output length and load |
+| Overload | Rate limits (HTTP 429) and capacity errors |
+| Partial failure | A stream that dies halfway through an answer |
+| **New:** Wrong-but-successful responses | HTTP 200 with malformed JSON, a hallucinated fact, or a skipped instruction |
+
+That last row is what makes AI systems uniquely tricky: **success at the transport layer tells you nothing about success at the semantic layer.** You need validation (schemas, parsers, checks) after every call.
+
+**AI agents are distributed workflows.** An agent that calls a model, then a tool, then the model again, then another tool is executing a multi-step distributed transaction — with all the familiar hazards:
+
+- **Idempotency:** if a tool call times out and the agent retries, did the email get sent twice? Tools with side effects need idempotency keys.
+- **Partial completion:** if step 7 of 10 fails, what state is the world in, and can the run resume?
+- **Durable execution:** long agent runs should checkpoint progress so a crash doesn't restart (and re-pay for) everything.
+- **Timeouts and budgets:** every step and every run needs an upper bound on time, tokens, and money.
+
+**Try it:** Take any agent workflow and mark which tool calls have side effects. For each one, decide what happens if it executes twice.
+
+---
+
 ## Key Takeaways
 
 1. **Distributed systems are hard because the network sits between components that used to communicate for free, instantly, and reliably within a single process.**

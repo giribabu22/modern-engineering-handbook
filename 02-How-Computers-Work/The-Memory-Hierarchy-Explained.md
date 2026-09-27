@@ -874,6 +874,35 @@ For a hard real-time system, the unpredictability of cache hits vs. misses is it
 
 ---
 
+## In the AI Era
+
+GPUs have their own memory hierarchy, and the fastest AI algorithms are designed around it:
+
+```
+GPU registers        tiny,  fastest
+On-chip SRAM         ~tens of MB total, very fast
+HBM (GPU memory)     tens of GB, fast but far slower than SRAM
+Host RAM (CPU)       hundreds of GB, reached over a slower interconnect
+NVMe / network       effectively unlimited, slowest
+```
+
+**FlashAttention** is the canonical example. Standard attention wrote large intermediate matrices out to GPU memory (HBM) and read them back. FlashAttention reorganizes the computation into tiles that stay in on-chip SRAM, dramatically reducing memory traffic. It does *the same math* — only the data movement changed — and it produced large speedups. This is the memory hierarchy lesson in its purest form: **moving data is often more expensive than computing on it.**
+
+**The same hierarchy appears one level up, in LLM applications.** Think of it as a context hierarchy:
+
+| Tier | Analogy | Characteristics |
+|------|---------|-----------------|
+| The model's context window | Registers / L1 | Tiny, expensive per token, instantly usable |
+| Retrieved documents (RAG) | RAM | Fetched on demand into the context |
+| Vector store / search index | SSD | Large, searchable, slower |
+| Source systems (databases, wikis, repos) | Disk / archive | Authoritative, slowest to query |
+
+Designing an AI feature is largely deciding *what belongs in which tier* — the same exercise as designing any cache-aware system.
+
+**Try it:** For an AI assistant that answers questions about your company's documentation, decide what always goes in the context window, what is retrieved per question, and what is never sent to the model. Justify each choice by cost, latency, and freshness.
+
+---
+
 ## Key Takeaways
 
 1. **No single memory technology is simultaneously fast, large, and cheap** — the memory hierarchy exists specifically to compose several technologies into one system that approximates all three.

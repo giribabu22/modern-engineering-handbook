@@ -890,6 +890,32 @@ A strong answer explains that "zero latency" is not physically achievable — ev
 
 ---
 
+## In the AI Era
+
+In a modern editor, a keystroke may now trigger a trip to a data center. When AI code completion is enabled, the chain described in this chapter gets a new ending:
+
+```
+Key press → OS → editor updates buffer
+         → debounce timer (wait for a pause in typing)
+         → collect context (surrounding code, open files)
+         → HTTPS request to a model endpoint
+         → GPU inference, streaming tokens back
+         → editor renders "ghost text" suggestion
+```
+
+Everything in this chapter still happens — interrupts, event loops, rendering — but the latency budget is now dominated by the network and the model. To feel instant, completion systems use techniques you'll find throughout this handbook:
+
+- **Debouncing** so every keystroke doesn't fire a request.
+- **Cancellation** of in-flight requests when the user keeps typing (their results are already stale).
+- **Streaming** so the first characters appear before the full answer is ready.
+- **Caching** of recent completions and **small, fast models** for the latency-critical path.
+
+There is also a new *privacy* dimension: the code around your cursor may leave your machine. Knowing exactly what data a tool sends, where, and what the provider retains is part of understanding what happens when you press a key.
+
+**Try it:** Open your editor's network or log view with AI completion enabled. Measure the time from pausing your typing to seeing a suggestion, and count how many requests are sent per minute of typing.
+
+---
+
 ## Key Takeaways
 
 1. **A keypress is not one event but a relay race across eight distinct layers** — physical switch, keyboard MCU, USB/PS2 controller, interrupt controller, device driver, kernel input subsystem, window manager, and application event loop — each with its own latency contribution.

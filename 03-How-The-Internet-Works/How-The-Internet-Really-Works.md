@@ -972,6 +972,21 @@ A strong answer should explain that standard BGP-based public internet routing p
 
 ---
 
+## In the AI Era
+
+AI traffic inverts the usual shape of internet workloads.
+
+Video streaming moves huge amounts of data with little computation per byte, so CDNs push content close to users. LLM traffic is the opposite: **tiny payloads** (a few kilobytes of text) and **enormous computation** per request. The scarce resource isn't bandwidth — it is GPU capacity, which is concentrated in relatively few data center regions.
+
+Consequences:
+- **Network latency is usually a small part of total latency.** A 50 ms round trip hardly matters next to multiple seconds of generation. Location matters more for *data residency* and *capacity availability* than for speed.
+- **Edge inference is emerging for small models.** Tasks like classification, autocomplete, and on-device assistants run on phones, laptops, and edge servers to cut latency and keep data local.
+- **Resilience means multiple regions and providers.** When a region runs out of capacity or a provider has an outage, traffic must shift — the same routing-around-failure principle the internet was built on.
+
+**Try it:** Time a short model request (one-word answer) and a long one (500-word answer) from your location. Compare each to the network round-trip time to the provider's endpoint. What fraction of the latency is the network?
+
+---
+
 ## Key Takeaways
 
 1. **The internet is not one network — it's an agreement between thousands of independently owned networks (Autonomous Systems)** to exchange traffic using shared protocols (IP addressing and BGP), with no central controlling authority.

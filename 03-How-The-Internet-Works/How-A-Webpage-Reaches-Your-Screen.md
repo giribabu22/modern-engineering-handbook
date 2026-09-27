@@ -1045,6 +1045,23 @@ A strong answer covers: integrate Lighthouse CI (or WebPageTest API) into the de
 
 ---
 
+## In the AI Era
+
+Two things have changed about the journey from server to screen.
+
+**1. Streaming text is a new rendering problem.** AI features stream their answers token by token. The web performance metric that users feel most is now **time to first token (TTFT)** — the AI-era cousin of time to first byte. Rendering streamed Markdown incrementally (without re-rendering the whole document for every token, and without layout shifts as code blocks and tables complete) is a real front-end engineering problem.
+
+**2. The reader may not be a human.** A growing share of page fetches come from AI crawlers gathering training or search data, and from AI agents browsing on behalf of users. That changes some old priorities:
+
+- **Semantic HTML and accessibility help agents too.** Clear headings, labeled buttons, and meaningful link text make pages easier for screen readers *and* for automated agents to navigate.
+- **Server-rendered content is easier to consume** than content that only appears after heavy client-side JavaScript.
+- **Crawler control** through `robots.txt` now includes decisions about AI crawlers specifically. Some sites also publish machine-oriented summaries (for example, the proposed `llms.txt` convention).
+- **Every page an agent reads is untrusted input** to that agent. Text hidden in a page can attempt to instruct the agent — see the prompt-injection discussion in Section 15.
+
+**Try it:** Measure TTFT and total generation time for an AI feature you use. Then view one of your own pages with JavaScript disabled — roughly what many simple crawlers see.
+
+---
+
 ## Key Takeaways
 
 1. **The pipeline is a strict sequence**: DNS → TCP → TLS → HTTP → HTML parsing (DOM) → CSS parsing (CSSOM) → render tree → layout → paint → composite. Understanding this order is the foundation of all frontend performance work.

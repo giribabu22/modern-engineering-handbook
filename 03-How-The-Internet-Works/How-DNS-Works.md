@@ -968,6 +968,23 @@ A strong answer covers:
 
 ---
 
+## In the AI Era
+
+When AI agents can fetch URLs, DNS becomes part of your security boundary.
+
+**Server-Side Request Forgery (SSRF) through agents.** If an agent has a "fetch this URL" tool running inside your network, an attacker (or an injected instruction) can ask it to fetch internal addresses — cloud metadata endpoints, admin panels, internal services. Validating the *hostname* is not enough, because of **DNS rebinding**: a domain can resolve to a harmless public IP when you check it and to `127.0.0.1` or an internal IP moments later when you connect.
+
+Defenses:
+- Resolve the hostname yourself, validate the resulting IP against a deny-list of private ranges, and connect to *that IP*.
+- Run fetch tools from an isolated network segment with no route to internal systems.
+- Use an egress proxy with an allow-list for agent traffic.
+
+**Hallucinated names are an attack surface.** Models sometimes invent plausible package names, domains, or API endpoints. Attackers have begun registering names that models commonly hallucinate — sometimes called "slopsquatting" for packages — so that code which blindly follows the suggestion fetches attacker-controlled content. Always verify that a suggested dependency or domain is the one you intend before installing or trusting it.
+
+**Try it:** List every tool in an AI application you use or build that makes outbound network requests. For each, write down what stops it from reaching `169.254.169.254` (a common cloud metadata address).
+
+---
+
 ## Key Takeaways
 
 1. **DNS is the internet's phonebook** — It translates human-readable names into machine-routable IP addresses. Every internet transaction depends on it.

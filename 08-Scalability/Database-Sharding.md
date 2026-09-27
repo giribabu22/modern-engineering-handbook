@@ -994,6 +994,22 @@ First, I'd challenge whether the data model could avoid this — e.g., could the
 
 ---
 
+## In the AI Era
+
+The largest AI models are too big for one GPU, so they are **sharded** — and the tradeoffs mirror database sharding closely.
+
+- **Tensor parallelism** splits each layer's weight matrices across GPUs; every layer needs fast communication between the shards, so it is used within tightly connected machines.
+- **Pipeline parallelism** places different layers on different GPUs, passing activations along like an assembly line; it communicates less but must keep all stages busy.
+- **Data parallelism** keeps a full copy of the model on each group and splits the *requests* or training data — the equivalent of read replicas.
+
+The lesson from this chapter holds: **cross-shard communication is the cost you are always fighting.** The interconnect between GPUs plays the role the network plays between database shards.
+
+At the application layer, vector indexes and conversation stores for multi-tenant AI products are sharded by tenant — which also makes per-customer data isolation, deletion, and residency requirements much easier to enforce.
+
+**Try it:** A multi-tenant AI assistant stores embeddings for 5,000 customers of very different sizes. Choose a shard key and explain how you'd handle the few customers large enough to be "hot shards."
+
+---
+
 ## Key Takeaways
 
 1. **Sharding splits a dataset horizontally across multiple independent database instances, scaling both storage and write throughput beyond what one machine can handle.**

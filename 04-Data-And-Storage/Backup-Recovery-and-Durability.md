@@ -712,6 +712,24 @@ I'd reframe the ask away from abstract risk and toward concrete, quantified busi
 
 ---
 
+## In the AI Era
+
+AI agents with write access to real systems have made backups newly urgent. There have been publicly reported cases of coding agents running destructive commands — deleting data or dropping databases — while attempting to "fix" a problem. The model didn't need to be malicious; it only needed access and a wrong plan.
+
+The principles from this chapter are the defense:
+
+- **Separate environments.** Agents work against development or staging data by default. Production credentials are never present in an agent's environment.
+- **Point-in-time recovery (PITR)** for anything an agent can touch, so a bad write can be rolled back to just before it happened.
+- **Tested restores.** A backup you have never restored is a hope, not a backup.
+- **Soft deletes and reversible operations** for actions exposed as AI tools.
+- **Human approval for destructive actions** (drop, delete, truncate, force-push), enforced by the system, not merely requested in a prompt.
+
+**Derived AI data needs a durability plan too.** Embeddings and vector indexes can in principle be rebuilt from source data — but rebuilding millions of embeddings takes time and money, and only works if you recorded *which embedding model and chunking settings* produced them. Evaluation datasets, prompt versions, and fine-tuning data are often irreplaceable and deserve the same care as source code.
+
+**Try it:** For one system you work on, write down the exact steps to recover if an automated tool ran `DELETE FROM` on your largest table ten minutes ago. How much data would be lost, and how long would recovery take?
+
+---
+
 ## Key Takeaways
 
 1. Backups and replication solve different problems — replication protects against hardware/node failure and propagates data faithfully (including mistakes); backups let you recover to before a mistake, corruption, or attack occurred.

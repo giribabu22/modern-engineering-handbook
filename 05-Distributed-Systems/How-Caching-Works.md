@@ -878,6 +878,27 @@ A senior approach: Use Redis Sorted Sets for the leaderboard data. Cache the top
 
 ---
 
+## In the AI Era
+
+Caching is one of the biggest cost and latency levers in AI systems, in three distinct forms.
+
+**1. Prompt (prefix) caching.** Model providers and inference servers can reuse the computed state for a prompt prefix they've already processed. If many requests share the same long system prompt, tool definitions, or document, later requests process that prefix faster and more cheaply. The design rule follows directly from how caches work: **put stable content first and variable content last.** A timestamp at the top of your prompt invalidates the cache for everything after it.
+
+```
+[ system instructions ][ tool definitions ][ reference docs ]  ← stable, cacheable
+[ conversation history ][ latest user message ]               ← changes every turn
+```
+
+**2. Exact response caching.** If the same input reliably deserves the same output (classification, extraction, embeddings of unchanged text), cache the result keyed by a hash of the model, parameters, and input. Embedding caches in particular are cheap and safe.
+
+**3. Semantic caching.** Return a cached answer when a new question is *similar* (by embedding distance) to a previous one. This can save a lot of money, but it's a correctness risk: "How do I cancel my order?" and "How do I cancel my subscription?" are close in embedding space and have different answers. Use conservative similarity thresholds, never share cached answers across users when responses are personalized or permission-dependent, and measure the rate of wrong cache hits.
+
+Track **cached-token ratio** alongside classic hit rate — it maps directly to your bill.
+
+**Try it:** Take a prompt template from an AI feature and reorder it so every piece that doesn't change between requests comes first. Estimate what fraction of input tokens becomes cacheable.
+
+---
+
 ## Key Takeaways
 
 1. **Caching is the most effective performance optimization** in software engineering. A well-designed cache can reduce latency by 100x and backend load by 90%.

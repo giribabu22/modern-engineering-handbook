@@ -731,6 +731,20 @@ I'd start by auditing the system's data types and explicitly classifying each by
 
 ---
 
+## In the AI Era
+
+AI products surface consistency anomalies to users in very visible ways.
+
+- **Read-your-writes:** A user uploads a document and immediately asks the assistant about it. If the indexing pipeline is eventually consistent, the assistant answers "I don't see that document" — which feels broken. Solutions include waiting for indexing before confirming the upload, or including the new document directly in the context until the index catches up.
+- **Monotonic reads:** An assistant that sees the updated policy in one answer and the old policy in the next (because requests hit different replicas or index versions) destroys trust quickly.
+- **Session consistency for agent memory:** Long-running agents write notes, plans, and intermediate results. If a later step reads a stale copy of the agent's own memory, it may repeat work or act on outdated decisions.
+
+**Nondeterminism compounds the problem.** Even with perfectly consistent data, the same question can produce different answers across calls. Engineers should separate the two causes when debugging: *did the model see different data, or did it reason differently over the same data?* Logging the exact retrieved context for every answer makes this distinguishable.
+
+**Try it:** Sketch the sequence of events in a "upload a file, then ask about it" feature, marking where eventual consistency could produce a wrong answer and which consistency guarantee fixes each gap.
+
+---
+
 ## Key Takeaways
 
 1. **CAP's "consistency" is a single point (linearizability) on a much richer spectrum** — this chapter's spectrum is the practical vocabulary for everything between "perfectly synchronized" and "eventually synchronized."

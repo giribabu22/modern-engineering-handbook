@@ -1071,6 +1071,21 @@ A strong answer covers:
 
 ---
 
+## In the AI Era
+
+Auto-scaling AI inference breaks several assumptions that work well for web servers.
+
+- **Capacity is scarce and slow to add.** Web servers start in seconds on abundant CPUs. GPU instances may be unavailable in a region, and a new replica must load many gigabytes of weights before serving — cold starts measured in minutes, not seconds.
+- **CPU utilization is the wrong signal.** Better scaling signals for inference servers include request queue depth, tokens generated per second, time to first token, and KV-cache memory utilization.
+- **Plan in tokens, not requests.** One request may use 200 tokens and another 200,000. Capacity plans should forecast input and output tokens per second at peak, plus concurrency.
+- **Cost dominates.** GPU hours are expensive, so the tradeoff between reserved capacity (cheaper, committed) and on-demand or serverless capacity (flexible, pricier, possibly unavailable) is a central business decision.
+
+If you consume models through an API rather than hosting them, capacity planning becomes **quota planning**: your provider's rate limits *are* your capacity. Know them, monitor your headroom against them, and request increases before a launch — not during it.
+
+**Try it:** Estimate peak tokens per second for an AI feature: daily active users × requests per user per day × average tokens per request, then apply a peak-to-average ratio from this chapter. Compare the result with your provider's token-per-minute limit.
+
+---
+
 ## Key Takeaways
 
 1. **Auto-scaling and capacity planning are complementary, not interchangeable.** Auto-scaling is the mechanism that adds/removes capacity automatically; capacity planning is the judgment about how much capacity is needed, including headroom and known-event forecasting.

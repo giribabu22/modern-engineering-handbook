@@ -1061,6 +1061,22 @@ A strong answer covers:
 
 ---
 
+## In the AI Era
+
+Load balancing LLM traffic is hard because **request cost varies by orders of magnitude.** A one-line classification and a 100-page document summary are both "one request." Round-robin can pile several giant requests onto one server while others sit idle.
+
+Techniques that work better for inference:
+
+- **Least outstanding work:** route by queued tokens or in-flight requests, not connection count.
+- **Cache-aware (prefix-aware) routing:** send requests that share a long prompt prefix to the same replica, so its cached computation can be reused. This is a deliberate trade of perfect balance for higher cache hit rates — the same sticky-session tradeoff described in this chapter.
+- **Separate pools by workload:** interactive chat (latency-sensitive) and batch jobs (throughput-sensitive) should not compete in the same queue.
+
+**AI gateways** extend load balancing across *providers and models*: routing between providers for availability, falling back when one returns errors or rate limits, and sending easy requests to smaller, cheaper models while reserving large models for hard ones.
+
+**Try it:** Two replicas each receive 10 requests. On one, all ten are short; on the other, one is a 50,000-token document. Walk through what round-robin and least-outstanding-tokens routing would do with the next request.
+
+---
+
 ## Key Takeaways
 
 1. **Load balancing is essential for any application running on more than one server.** It distributes traffic, provides failover, and enables horizontal scaling.

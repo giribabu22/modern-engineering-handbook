@@ -895,6 +895,29 @@ A strong answer covers: HTTP/3's main benefits (faster connection setup via 1-RT
 
 ---
 
+## In the AI Era
+
+LLM APIs look like ordinary HTTP APIs, but they stretch the protocol stack in unusual ways.
+
+**Long-lived, streaming responses.** A typical web request finishes in milliseconds. An LLM request can take many seconds — or minutes for long agent tasks. Most providers stream output using **Server-Sent Events (SSE)**: one HTTP response that stays open and delivers tokens as they are generated.
+
+This breaks assumptions that were baked into infrastructure for years:
+
+| Component | Old assumption | What goes wrong |
+|-----------|---------------|-----------------|
+| Load balancer / proxy | Idle connections are dead | Idle timeouts cut off slow generations |
+| Reverse proxy | Buffer the whole response | Buffering defeats streaming — users see nothing, then everything |
+| Client HTTP library | 30-second default timeout | Long generations fail mid-answer |
+| Retry logic | Requests are short and cheap | Retrying a 60-second request doubles cost and latency |
+
+**Tool protocols ride on familiar layers.** The Model Context Protocol (MCP), used to connect AI assistants to tools and data, is built on JSON-RPC messages carried over standard input/output for local tools or HTTP for remote ones. Nothing magical — just the protocol stack you already know.
+
+**TCP concepts still decide user experience.** Connection reuse, HTTP/2 multiplexing, and keeping connections warm matter when an agent makes hundreds of model and tool calls per task.
+
+**Try it:** Call any streaming LLM API with `curl -N` and watch the raw `data:` lines arrive. Then put it behind a proxy with response buffering enabled and observe the difference.
+
+---
+
 ## Key Takeaways
 
 1. **The protocol stack is layered by design** — IP handles addressing/routing, TCP/UDP handle transport, and HTTP handles application semantics, allowing each layer to evolve independently (as HTTP/3 proved by swapping the transport layer entirely).

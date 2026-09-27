@@ -684,6 +684,23 @@ Key considerations: S3 lacks HDFS's strong sequential-write and rename-based ato
 
 ---
 
+## In the AI Era
+
+File systems matter to AI in two very different ways.
+
+**At training and serving scale,** AI workloads involve some of the largest files in computing: datasets of many terabytes and model checkpoints of tens or hundreds of gigabytes. Loading model weights quickly is a real cold-start problem — a serving replica can't take traffic until its weights are in GPU memory. Techniques include memory-mapping weight files, streaming weights from object storage, and caching them on local NVMe. Checkpointing long training runs relies on the same atomic-write and durability ideas in this chapter: a half-written checkpoint must never replace a good one.
+
+**At the desk,** AI coding agents edit your files directly. That puts old file-system lessons to work:
+
+- **Atomic writes** (write to a temporary file, then rename) prevent a crash from leaving a half-edited file.
+- **Version control is your undo button.** Commit before letting an agent make broad changes, and review the diff afterward.
+- **Watch for file-watcher storms.** Agents can modify many files quickly, triggering rebuilds, hot reloads, and indexers all at once.
+- **Ignore lists matter.** Keep secrets, build artifacts, and large data files out of what an agent reads and edits.
+
+**Try it:** Before your next AI-assisted refactor, create a branch and commit. Afterward, read `git diff --stat` first. Were any files changed that you didn't expect?
+
+---
+
 ## Key Takeaways
 
 1. A file is a human-usable abstraction the file system builds on top of raw, meaningless, fixed-size disk blocks.

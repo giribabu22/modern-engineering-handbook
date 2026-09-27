@@ -979,6 +979,27 @@ I'd explain that a CPU core can only truly execute one thread's instructions at 
 
 ---
 
+## In the AI Era
+
+AI coding agents don't just suggest text — they **run commands on real operating systems**: executing tests, installing packages, editing files, and calling network services. The OS isolation primitives in this chapter are now the primary safety mechanism for AI tools.
+
+| OS concept | Why it matters for AI agents |
+|-----------|-----------------------------|
+| Processes & users | Run agents as an unprivileged user, never as root/Administrator |
+| File permissions | Limit the agent to the project directory it is working in |
+| Namespaces & containers | Give the agent its own filesystem, network, and process view |
+| cgroups / resource limits | Stop a runaway loop from consuming all CPU, memory, or disk |
+| System call filtering (seccomp, sandbox profiles) | Block dangerous operations entirely |
+| Network controls | Allow only the hosts the task needs, to reduce data exfiltration risk |
+
+The principle is **least privilege**, one of the oldest ideas in operating systems. An agent that can read your SSH keys, reach the internet, and push to production is one bad instruction — or one malicious instruction hidden in a web page it read — away from an incident.
+
+The OS also explains agent *performance*. Agents spawn many short-lived processes (test runners, linters, compilers). Process startup cost, file-system caching, and context switching determine how fast an agent iteration loop feels.
+
+**Try it:** Run a coding agent (or any script you don't fully trust) inside a container with the project directory mounted read-write, no home directory, and networking disabled. Note which tasks still work and which break. That list is your agent's real permission requirement.
+
+---
+
 ## Key Takeaways
 
 1. **The operating system's core job is resource management**: it turns a fixed amount of CPU, memory, and I/O hardware into a shared, safely multiplexed resource for many competing programs.

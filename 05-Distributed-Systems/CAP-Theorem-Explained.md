@@ -972,6 +972,23 @@ A strong answer covers:
 
 ---
 
+## In the AI Era
+
+AI applications face CAP-style tradeoffs in a new form: **when a model dependency fails, do you stay available or stay consistent?**
+
+Consider an application that depends on a hosted model provider. When that provider is unreachable, rate-limited, or degraded — effectively a partition between you and a critical dependency — you can:
+
+- **Favor availability:** fail over to a different model or provider. The feature keeps working, but answers may differ in style, quality, or format, and your prompts and evaluations may not have been tuned for the fallback.
+- **Favor consistency:** return an error or a degraded non-AI experience rather than serve behavior you haven't validated.
+
+Neither is universally right. A casual writing assistant should probably fail over. A system extracting structured medical or financial data probably shouldn't silently switch to an untested model.
+
+The same thinking applies to **agent memory and conversation state** replicated across regions: if a user continues a conversation during a partition, can the assistant proceed with a possibly stale history, or must it wait?
+
+**Try it:** For two AI features (one low-stakes, one high-stakes), write down the fallback behavior during a provider outage and justify it using the CAP vocabulary from this chapter.
+
+---
+
 ## Key Takeaways
 
 1. **The CAP theorem proves a fundamental constraint in distributed systems:** during a network partition, you must choose between consistency and availability. Both is impossible.

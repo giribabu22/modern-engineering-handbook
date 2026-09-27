@@ -1035,6 +1035,25 @@ Rate limiting is a *per-client fairness* mechanism — a static or tier-based qu
 
 ---
 
+## In the AI Era
+
+Rate limiting in AI systems is about **tokens and money**, not just requests.
+
+**Limits you consume.** Model providers typically enforce several limits at once: requests per minute, input tokens per minute, and output tokens per minute, often per model. Clients must handle HTTP 429 responses correctly — respect the `retry-after` header, back off with jitter, and avoid retry storms from many workers retrying in sync.
+
+**Limits you enforce.** Counting requests is not enough to protect your own AI features, because one request can cost a thousand times more than another. Effective controls include:
+
+- Per-user and per-tenant **token or cost budgets** (per minute and per month).
+- Maximum input size and maximum output tokens per request.
+- **Agent loop limits:** maximum iterations, tool calls, wall-clock time, and spend per task. A confused agent will happily loop forever — and bill you for every step.
+- Concurrency limits on expensive operations like long-document processing.
+
+Rate limits are also a security control: unrestricted AI endpoints attract abuse ("free model access via your app"), and cost-exhaustion attacks are cheap for an attacker and expensive for you.
+
+**Try it:** Design a token-bucket limiter where each request's cost is its estimated token count instead of 1. What do you do when the actual output length exceeds the estimate?
+
+---
+
 ## Key Takeaways
 
 1. **Rate limiting caps requests per client per time window; throttling delays or queues excess requests rather than rejecting them outright.** Most production systems combine both.

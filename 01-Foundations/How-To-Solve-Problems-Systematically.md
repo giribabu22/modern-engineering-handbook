@@ -545,6 +545,38 @@ Yes, with adaptation — decomposition and precise problem-statement-writing app
 
 ---
 
+## In the AI Era
+
+A systematic process is the difference between using AI as an accelerator and using it as a slot machine ("regenerate until something works").
+
+AI fits into each stage of problem solving — with a distinct risk at each:
+
+| Stage | How AI helps | What to guard against |
+|-------|-------------|----------------------|
+| Understand the problem | Restate the problem, list hidden assumptions, ask clarifying questions | Letting the model silently fill in requirements you never stated |
+| Reproduce | Draft a minimal reproduction script or failing test | Skipping reproduction because the model "already knows" the cause |
+| Hypothesize | Brainstorm many candidate causes quickly | Anchoring on the first, most confident-sounding explanation |
+| Experiment | Write the instrumentation, logging, or test harness | Accepting the model's prediction of the result instead of running it |
+| Fix | Draft the change | Fixing the symptom it was shown, not the root cause |
+| Verify | Generate additional test cases | Tests that assert whatever the buggy code already does |
+
+**The most important rule:** the AI never replaces the *reproduction* and *verification* steps. Those are where reality gets a vote.
+
+A useful prompt shape that keeps you in control:
+
+```
+Here is the symptom: <exact error, inputs, environment>.
+Here is what I have already ruled out: <list, with evidence>.
+List 5 hypotheses ranked by likelihood. For each one, tell me
+the cheapest experiment that would disprove it.
+```
+
+Notice what this prompt does: it forces precision about the symptom, records evidence, asks for *falsifiable* hypotheses, and keeps experimentation in your hands.
+
+**Try it:** Next time you hit a bug, write the prompt above *before* asking an assistant anything. Often, writing down what you've ruled out is enough to solve the problem yourself — the classic rubber-duck effect, now with a duck that talks back.
+
+---
+
 ## Key Takeaways
 
 1. Systematic problem-solving closes the gap between an observed symptom and its root cause through a repeatable process, not luck or memorized patterns.

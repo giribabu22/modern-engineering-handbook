@@ -700,6 +700,23 @@ Key risks: cross-shard transactions become expensive or impossible with strict A
 
 ---
 
+## In the AI Era
+
+Two AI-era developments touch database internals directly.
+
+**1. Vector search is now a database feature.** Embeddings turn text, images, or code into high-dimensional vectors where "similar meaning" becomes "nearby points." Finding the nearest neighbors exactly is too slow at scale, so databases use **approximate nearest neighbor (ANN)** indexes such as HNSW (a layered graph) and IVF (clustering into buckets). These trade a little *recall* (occasionally missing a true neighbor) for large speedups — the same kind of tradeoff as choosing a B-tree versus a hash index. Many general-purpose databases now support vector indexes directly (for example, PostgreSQL through the pgvector extension).
+
+**2. LLMs write queries.** "Text-to-SQL" features and coding assistants generate SQL constantly. Everything in this chapter about query planning still decides whether that SQL is fast or catastrophic. Guardrails for model-generated queries:
+
+- Use a **read-only database role** with access to only the needed tables or views.
+- Set **statement timeouts** and row limits.
+- Run **`EXPLAIN`** on generated queries in development; a missing index doesn't care who wrote the query.
+- Never interpolate model output into SQL strings — generated values go through parameters like any other untrusted input.
+
+**Try it:** Ask an assistant to write a query for a reporting question on one of your schemas. Run `EXPLAIN ANALYZE` on it. Does it use the indexes you expect? Could you have predicted the plan from this chapter?
+
+---
+
 ## Key Takeaways
 
 1. A database is four systems in one: a storage engine, a query engine, a transaction/concurrency manager, and a recovery system.

@@ -527,6 +527,32 @@ Yes, and it's a real failure mode — sometimes called "reinventing the wheel, b
 
 ---
 
+## In the AI Era
+
+AI assistants are extraordinarily good at producing answers that *look* right. That makes the habits in this chapter more valuable, not less.
+
+- **"It works" vs. "it's correct" becomes the central question.** Generated code usually passes the happy path. Your job is to ask what happens with empty inputs, concurrent access, partial failure, and malicious input — the cases the model was never told about.
+- **Treat every AI answer as a hypothesis.** Form it, then try to falsify it: run it, test it, check the documentation it cites, and look for the edge case that breaks it. An answer you have not verified is a guess with good grammar.
+- **First principles beat pattern-matching — including the model's.** An LLM is, in a sense, the ultimate reasoner-by-analogy: it produces what usually follows in similar contexts. When your problem is genuinely novel, analogy is exactly what fails. Reason from the constraints of *your* system.
+- **Watch the second-order effects of AI adoption itself.**
+  - More code is written, so more code must be reviewed. Review becomes the bottleneck.
+  - Code that nobody on the team fully understands becomes an operational liability at 3 a.m.
+  - Teams converge on whatever patterns the model prefers, whether or not they fit.
+
+A practical checklist before accepting AI-generated work:
+
+```
+[ ] Can I explain what every line does and why it is there?
+[ ] Did I run it, and did I test at least one edge case the model didn't mention?
+[ ] Do the APIs, flags, and library functions it uses actually exist in my version?
+[ ] Does it follow our existing patterns, or did it invent a new one?
+[ ] Would I be comfortable being paged for this code tonight?
+```
+
+**Try it:** Ask an AI assistant to write a function that parses dates from user input. Before running it, write down three inputs you predict will break it. Then test them. Your predictions — not the generated code — are the engineering skill.
+
+---
+
 ## Key Takeaways
 
 1. Thinking like an engineer means applying deliberate tradeoff analysis and structured reasoning under uncertainty — it is a learnable process, not an innate trait or a synonym for raw intelligence.

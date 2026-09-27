@@ -503,6 +503,27 @@ Largely manufacturing precision and, later, a suitable underlying technology. Ba
 
 ---
 
+## In the AI Era
+
+Software has always existed to encode decisions so a machine can make them repeatedly, cheaply, and without getting tired. Large language models (LLMs) push that story one step further: for the first time, a meaningful share of the *writing* of software can itself be automated.
+
+That changes where the cost of software lives — not whether software is needed.
+
+| Before AI assistants | With AI assistants |
+|----------------------|--------------------|
+| Typing code was a major cost | Producing a first draft of common code is cheap |
+| Knowing syntax and APIs was a differentiator | Knowing *what* to build and *whether it is right* is the differentiator |
+| Code volume was limited by people | Code volume is limited by review, testing, and operational capacity |
+| Bugs came from humans | Bugs come from humans *and* from confident-looking generated code |
+
+**The Jevons effect applies.** When something becomes cheaper, we usually use more of it. Cheaper code means more software gets written — more internal tools, more automation, more features — and every one of those still has to be specified, secured, deployed, observed, and maintained. The demand for engineering judgment grows, even as the demand for keystrokes shrinks.
+
+**The enduring lesson of this chapter still holds:** software exists to solve a problem for someone. An AI can generate a thousand lines in seconds; only an engineer who understands the problem can tell whether those lines should exist at all.
+
+**Try it:** Pick a feature you built recently. Estimate what percentage of the total effort was *writing code* versus understanding requirements, debugging, reviewing, deploying, and fixing issues afterward. That ratio tells you how much AI assistance can actually speed you up.
+
+---
+
 ## Key Takeaways
 
 1. Software exists to formalize procedures and decisions so a machine can execute them automatically, consistently, and at near-zero marginal cost, rather than requiring repeated human execution.

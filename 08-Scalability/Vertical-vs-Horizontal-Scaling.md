@@ -886,6 +886,23 @@ For a latency-critical, tightly-coupled workload like a matching engine, horizon
 
 ---
 
+## In the AI Era
+
+AI serving forces a vertical-first decision: **the model must fit.** A model that needs 140 GB of memory cannot be split across many small, cheap machines without tight coordination. So the first step is vertical — a node with enough GPU memory (or a tightly connected multi-GPU node) — and horizontal scaling follows as you add replicas of that unit to serve more users.
+
+There's also a new axis of this old tradeoff: **scale the model or scale the calls?**
+
+| Approach | Example | Tradeoff |
+|----------|---------|----------|
+| "Vertical": bigger model | Send every request to the largest, most capable model | Simpler, higher quality, more expensive and slower |
+| "Horizontal": more, smaller calls | Use a small fast model for routing, extraction, and simple tasks; escalate hard cases | Cheaper and faster on average, more moving parts to test |
+
+Many production systems use **model routing**: a cheap classifier or small model decides which requests need the large model. As with horizontal scaling, you gain efficiency but take on coordination complexity and new failure modes (misrouted hard requests).
+
+**Try it:** For an AI support assistant, classify ten realistic user questions as "small model is enough" or "needs large model." What fraction could be handled cheaply, and what does a misclassification cost?
+
+---
+
 ## Key Takeaways
 
 1. **Vertical scaling makes a single machine bigger; horizontal scaling adds more machines.** Neither is universally superior — the right choice depends on workload shape, statefulness, and cost structure.

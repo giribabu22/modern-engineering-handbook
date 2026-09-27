@@ -706,6 +706,27 @@ Key factors: the actual consistency requirements of the specific data (if it's g
 
 ---
 
+## In the AI Era
+
+Retrieval-Augmented Generation (RAG) systems are replication systems in disguise.
+
+The source of truth lives in documents, tickets, or databases. A copy — transformed into chunks and embeddings — lives in a vector index. That copy is a **replica**, and every replication question from this chapter applies:
+
+| Replication question | RAG version |
+|---------------------|-------------|
+| How far behind is the replica? | How stale can the index be before answers become wrong? |
+| How are changes propagated? | Batch re-indexing nightly, or change data capture (CDC) streaming updates? |
+| What happens on delete? | Does a deleted or access-revoked document disappear from answers? |
+| How do we detect divergence? | Do we reconcile the index against the source periodically? |
+
+**Replication lag becomes a correctness and security bug.** If an employee's access to a document is revoked but the embedding remains searchable, the AI assistant can leak it. If a policy changes but the index isn't updated, the assistant confidently quotes the old policy.
+
+Good practice: store the source document ID, version, and access-control information alongside every chunk; filter by permissions *at query time*; and propagate deletes with the same priority as inserts.
+
+**Try it:** Design the pipeline that keeps a vector index in sync with a PostgreSQL table of help-center articles. Decide how updates, deletes, and permission changes flow, and what lag is acceptable.
+
+---
+
 ## Key Takeaways
 
 1. Replication solves fault tolerance, read scalability, and geographic latency — but introduces the fundamentally hard problem of keeping multiple copies of data usefully in sync.

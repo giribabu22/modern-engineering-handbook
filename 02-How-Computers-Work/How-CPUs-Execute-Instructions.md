@@ -862,6 +862,29 @@ For a system where tail latency dominates, I'd optimize specifically to minimize
 
 ---
 
+## In the AI Era
+
+Modern AI runs mostly on **GPUs and other accelerators** (such as TPUs), not CPUs — and the reason comes straight from this chapter.
+
+A neural network is dominated by one operation: **matrix multiplication**. It is the same simple multiply-and-add repeated billions of times, with almost no branching. CPUs spend enormous silicon on branch prediction, out-of-order execution, and large caches to make *unpredictable* code fast. GPUs make the opposite bet: thousands of simple cores executing the same instruction on different data (an extension of the SIMD idea you learned here).
+
+```
+CPU:  few powerful cores   → great at branchy, sequential logic
+GPU:  thousands of simple cores → great at "do this math on all of it"
+```
+
+**A surprising fact about LLM inference:** generating text one token at a time is usually limited by **memory bandwidth, not compute**. To produce each token, the hardware must read the model's weights from memory. With a small batch, the arithmetic units sit idle waiting for data. This is why serving systems *batch* many users' requests together — it increases *arithmetic intensity* (math done per byte loaded), exactly the concept that governs CPU performance tuning.
+
+CPU knowledge still matters in AI systems:
+
+- Tokenization, request parsing, retrieval, and post-processing usually run on CPUs, and can become the bottleneck once the GPU work is optimized.
+- Small models increasingly run on CPUs and laptop/phone neural units for local, private inference.
+- Profiling discipline — measure before optimizing — applies identically.
+
+**Try it:** A model has 8 billion parameters stored as 16-bit numbers (16 GB). If a GPU has 2 TB/s of memory bandwidth, what is the *theoretical maximum* tokens per second for a single user if every token requires reading all weights once? (Answer: roughly 2000 / 16 ≈ 125 tokens/s — before any other overhead.)
+
+---
+
 ## Key Takeaways
 
 1. **The fetch-decode-execute cycle is the foundation of every CPU**, but modern CPUs overlap (pipeline) these stages across many instructions simultaneously rather than executing them one at a time to completion.
