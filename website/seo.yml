@@ -118,8 +118,26 @@ README.md:
   title: "AI Gateway Design — LLM Routing, Token Quotas, and Fallbacks"
   description: "How to design an AI gateway: token-based rate limits, cost attribution, model routing, circuit breakers and fallbacks, streaming proxying, and governance."
 07-Software-Architecture/README.md:
-  title: "Software Architecture — Coupling, Boundaries, and Tradeoffs"
-  description: "The principles of software architecture — monoliths vs microservices, coupling and cohesion, event-driven design, and where AI components fit."
+  title: "Software Architecture — Boundaries, Tradeoffs, and Evolution"
+  description: "Software architecture for engineers: quality attributes, monoliths vs microservices, coupling and cohesion, event-driven design, refactoring, and AI components."
+07-Software-Architecture/What-Is-Software-Architecture.md:
+  title: "What Is Software Architecture? Decisions, Quality Attributes, ADRs"
+  description: "Software architecture explained: significant decisions, quality attributes, architectural styles, the C4 model, architecture decision records, and fitness functions."
+07-Software-Architecture/Monoliths-vs-Microservices-The-Real-Tradeoffs.md:
+  title: "Monolith vs Microservices — The Real Tradeoffs Explained"
+  description: "When to use a modular monolith or microservices: team autonomy, availability math, data ownership, the distributed monolith, and how to extract services."
+07-Software-Architecture/Coupling-Cohesion-And-Boundaries.md:
+  title: "Coupling and Cohesion Explained — Drawing Good Boundaries"
+  description: "Coupling, cohesion, information hiding, bounded contexts, dependency direction, instability metrics, cycles, and enforcing module boundaries with fitness functions."
+07-Software-Architecture/Event-Driven-Architecture.md:
+  title: "Event-Driven Architecture Explained — Events, Kafka, Sagas"
+  description: "Event-driven architecture: events vs commands, queues vs logs, at-least-once delivery, idempotent consumers, ordering, outbox, CQRS, choreography vs orchestration."
+07-Software-Architecture/How-To-Refactor-Large-Systems.md:
+  title: "How To Refactor Large Systems — Strangler Fig and Safe Migrations"
+  description: "Refactor legacy systems without big-bang rewrites: characterization tests, seams, branch by abstraction, the strangler fig, parallel runs, and data migrations."
+07-Software-Architecture/Where-The-Model-Fits-Architecting-With-AI-Components.md:
+  title: "Architecting With AI Components — Where the LLM Fits"
+  description: "How to architect systems with LLMs: task-shaped interfaces, adapters, AI proposes and code decides, placement patterns, gateways, and evaluation."
 
 08-Scalability/README.md:
   title: "Scalability Explained — Scaling From 1 User To 1 Billion"

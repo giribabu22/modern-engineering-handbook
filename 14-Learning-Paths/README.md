@@ -114,6 +114,8 @@ This section provides guided reading paths for different roles and goals. Each p
 12. [How To Design Any System](../06-System-Design/How-To-Design-Any-System.md) — the method to use in every interview
 13. [How To Handle 1 Million Users](../06-System-Design/How-To-Handle-1-Million-Users.md)
 14. Practice designs: [Chat](../06-System-Design/Designing-A-Chat-System.md) · [Payments](../06-System-Design/Designing-A-Payment-System.md) · [Search](../06-System-Design/Designing-A-Search-System.md) · [AI Assistant](../06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md) · [AI Gateway](../06-System-Design/Designing-An-AI-Gateway.md)
+15. [Monoliths vs Microservices: The Real Tradeoffs](../07-Software-Architecture/Monoliths-vs-Microservices-The-Real-Tradeoffs.md)
+16. [Event-Driven Architecture](../07-Software-Architecture/Event-Driven-Architecture.md)
 
 **Interview tip:** Practice with an AI as your interviewer — ask it to play a skeptical senior engineer who pushes back on every tradeoff you state. Then write down the questions that stumped you and find the answers in the handbook, not in the AI's reply.
 

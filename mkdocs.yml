@@ -117,6 +117,14 @@ nav:
       - Designing A Search System: 06-System-Design/Designing-A-Search-System.md
       - Designing An AI Assistant Over Private Data: 06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md
       - Designing An AI Gateway: 06-System-Design/Designing-An-AI-Gateway.md
+  - Architecture:
+      - 07-Software-Architecture/index.md
+      - What Is Software Architecture?: 07-Software-Architecture/What-Is-Software-Architecture.md
+      - Monoliths vs Microservices: 07-Software-Architecture/Monoliths-vs-Microservices-The-Real-Tradeoffs.md
+      - Coupling, Cohesion, and Boundaries: 07-Software-Architecture/Coupling-Cohesion-And-Boundaries.md
+      - Event-Driven Architecture: 07-Software-Architecture/Event-Driven-Architecture.md
+      - How To Refactor Large Systems: 07-Software-Architecture/How-To-Refactor-Large-Systems.md
+      - Where the Model Fits: 07-Software-Architecture/Where-The-Model-Fits-Architecting-With-AI-Components.md
   - Scalability:
       - 08-Scalability/index.md
       - Vertical vs Horizontal Scaling: 08-Scalability/Vertical-vs-Horizontal-Scaling.md
@@ -157,6 +165,5 @@ nav:
       - Securing AI Systems: 15-AI-Era-Engineering/Securing-AI-Systems.md
   - More:
       - Learning Paths: 14-Learning-Paths/index.md
-      - Software Architecture: 07-Software-Architecture/index.md
       - Engineering Leadership: 12-Engineering-Leadership/index.md
       - Case Studies: 13-Case-Studies/index.md
