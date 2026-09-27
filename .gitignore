@@ -1,0 +1,4 @@
+# Generated website files
+website/.docs/
+website/.site/
+__pycache__/

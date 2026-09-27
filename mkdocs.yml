@@ -1,0 +1,129 @@
+# Website configuration. Build locally with:
+#   pip install -r website/requirements.txt
+#   python website/build_site.py && mkdocs serve
+site_name: Modern Software Engineering Handbook
+site_url: https://giribabu22.github.io/modern-engineering-handbook/
+site_description: A free handbook that explains software engineering from first principles — computers, the internet, databases, distributed systems, scalability, and AI engineering.
+site_author: giribabu22
+repo_url: https://github.com/giribabu22/modern-engineering-handbook
+repo_name: giribabu22/modern-engineering-handbook
+edit_uri: ""
+copyright: Free to read, share, and learn from.
+
+docs_dir: website/.docs
+site_dir: website/.site
+
+theme:
+  name: material
+  custom_dir: website/overrides
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/giribabu22/modern-engineering-handbook
+  # Paste the content value of Google Search Console's HTML-tag verification here.
+  google_site_verification: ""
+  # Paste the content value of Bing Webmaster Tools' meta-tag verification here.
+  bing_site_verification: ""
+
+nav:
+  - Home: index.md
+  - Foundations:
+      - 01-Foundations/index.md
+      - Why Software Exists: 01-Foundations/Why-Software-Exists.md
+      - How To Think Like An Engineer: 01-Foundations/How-To-Think-Like-An-Engineer.md
+      - How To Solve Problems Systematically: 01-Foundations/How-To-Solve-Problems-Systematically.md
+  - Computers:
+      - 02-How-Computers-Work/index.md
+      - What Happens When You Press A Key: 02-How-Computers-Work/What-Happens-When-You-Press-A-Key.md
+      - How Memory Works: 02-How-Computers-Work/How-Memory-Works.md
+      - How CPUs Execute Instructions: 02-How-Computers-Work/How-CPUs-Execute-Instructions.md
+      - How Operating Systems Work: 02-How-Computers-Work/How-Operating-Systems-Work.md
+      - The Memory Hierarchy: 02-How-Computers-Work/The-Memory-Hierarchy-Explained.md
+  - Internet:
+      - 03-How-The-Internet-Works/index.md
+      - How The Internet Really Works: 03-How-The-Internet-Works/How-The-Internet-Really-Works.md
+      - How A Webpage Reaches Your Screen: 03-How-The-Internet-Works/How-A-Webpage-Reaches-Your-Screen.md
+      - How DNS Works: 03-How-The-Internet-Works/How-DNS-Works.md
+      - How HTTPS Protects Your Data: 03-How-The-Internet-Works/How-HTTPS-Protects-Your-Data.md
+      - HTTP, TCP/IP, and the Protocol Stack: 03-How-The-Internet-Works/HTTP-TCP-IP-and-the-Protocol-Stack.md
+  - Data:
+      - 04-Data-And-Storage/index.md
+      - How Databases Work: 04-Data-And-Storage/How-Databases-Work.md
+      - SQL vs NoSQL: 04-Data-And-Storage/SQL-vs-NoSQL-The-Real-Difference.md
+      - How File Systems Work: 04-Data-And-Storage/How-File-Systems-Work.md
+      - Data Replication Strategies: 04-Data-And-Storage/Data-Replication-Strategies.md
+      - Backup, Recovery, and Durability: 04-Data-And-Storage/Backup-Recovery-and-Durability.md
+  - Distributed Systems:
+      - 05-Distributed-Systems/index.md
+      - Why Distributed Systems Are Hard: 05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md
+      - CAP Theorem Explained: 05-Distributed-Systems/CAP-Theorem-Explained.md
+      - Consistency vs Availability: 05-Distributed-Systems/Consistency-vs-Availability.md
+      - How Caching Works: 05-Distributed-Systems/How-Caching-Works.md
+  - Scalability:
+      - 08-Scalability/index.md
+      - Vertical vs Horizontal Scaling: 08-Scalability/Vertical-vs-Horizontal-Scaling.md
+      - How Load Balancing Works: 08-Scalability/How-Load-Balancing-Works.md
+      - Database Sharding: 08-Scalability/Database-Sharding.md
+      - Rate Limiting and Throttling: 08-Scalability/Rate-Limiting-and-Throttling.md
+      - Auto-scaling and Capacity Planning: 08-Scalability/Auto-scaling-and-Capacity-Planning.md
+  - AI Engineering:
+      - 15-AI-Era-Engineering/index.md
+      - How LLMs Actually Work: 15-AI-Era-Engineering/How-LLMs-Actually-Work.md
+      - Engineering With AI Assistants: 15-AI-Era-Engineering/Engineering-With-AI-Assistants.md
+      - Building LLM-Powered Systems: 15-AI-Era-Engineering/Building-LLM-Powered-Systems.md
+      - Evaluating AI Systems: 15-AI-Era-Engineering/Evaluating-AI-Systems.md
+      - Securing AI Systems: 15-AI-Era-Engineering/Securing-AI-Systems.md
+  - More:
+      - Learning Paths: 14-Learning-Paths/index.md
+      - System Design: 06-System-Design/index.md
+      - Software Architecture: 07-Software-Architecture/index.md
+      - Security: 09-Security/index.md
+      - Reliability: 10-Reliability/index.md
+      - Production Engineering: 11-Production-Engineering/index.md
+      - Engineering Leadership: 12-Engineering-Leadership/index.md
+      - Case Studies: 13-Case-Studies/index.md

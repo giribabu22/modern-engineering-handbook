@@ -1,0 +1,159 @@
+# Search-engine metadata for each page of the website.
+# title:       shown as the blue headline in Google results (aim for < 60 characters)
+# description: shown as the snippet under the headline (aim for 120–160 characters)
+# Keys are paths relative to the repository root.
+
+README.md:
+  title: Modern Software Engineering Handbook — Learn From First Principles
+  description: A free handbook that explains how computers, the internet, databases, distributed systems, scalability, and AI engineering really work — from first principles.
+
+01-Foundations/README.md:
+  title: Software Engineering Foundations — How Engineers Think
+  description: Learn the mindset, problem-solving methods, and tradeoff thinking every software engineer needs, and why they matter more when AI writes code.
+01-Foundations/Why-Software-Exists.md:
+  title: Why Software Exists — A Short History From Punch Cards to AI
+  description: Why software exists, how it evolved from punch cards to cloud and AI, and what that history teaches engineers about building useful systems today.
+01-Foundations/How-To-Think-Like-An-Engineer.md:
+  title: How To Think Like A Software Engineer — Explained Simply
+  description: First-principles thinking, systems thinking, second-order effects, and the difference between code that works and code that is correct — with examples.
+01-Foundations/How-To-Solve-Problems-Systematically.md:
+  title: How To Solve Programming Problems Systematically
+  description: A step-by-step method for understanding, reproducing, debugging, and solving software problems — and how to use AI assistants without skipping the hard parts.
+
+02-How-Computers-Work/README.md:
+  title: How Computers Work — CPUs, Memory, and Operating Systems
+  description: A beginner-friendly guide to what happens inside a computer when code runs, covering CPUs, memory, operating systems, and the memory hierarchy.
+02-How-Computers-Work/What-Happens-When-You-Press-A-Key.md:
+  title: What Happens When You Press A Key? Keyboard to Screen Explained
+  description: Follow a single key press through hardware interrupts, the operating system, the event loop, and rendering until a character appears on screen.
+02-How-Computers-Work/How-Memory-Works.md:
+  title: How Computer Memory Works — RAM, Virtual Memory, and Paging
+  description: How RAM stores data, how virtual memory and page tables work, stack vs heap, and why memory shapes performance — including GPU memory for AI models.
+02-How-Computers-Work/How-CPUs-Execute-Instructions.md:
+  title: How CPUs Execute Instructions — Pipelines, Caches, and Branches
+  description: How a CPU fetches, decodes, and executes instructions, with pipelining, branch prediction, and SIMD explained simply — plus why AI runs on GPUs.
+02-How-Computers-Work/How-Operating-Systems-Work.md:
+  title: How Operating Systems Work — Processes, Scheduling, and Isolation
+  description: How an operating system manages processes, threads, memory, files, and permissions, and how the same isolation keeps AI agents safely sandboxed.
+02-How-Computers-Work/The-Memory-Hierarchy-Explained.md:
+  title: The Memory Hierarchy Explained — Registers, Cache, RAM, Disk
+  description: Why computers have registers, L1/L2/L3 caches, RAM, and disk, the latency numbers every programmer should know, and how locality drives performance.
+
+03-How-The-Internet-Works/README.md:
+  title: How The Internet Works — Networks, DNS, HTTP, and HTTPS
+  description: A clear guide to how data moves across the internet, from cables and routers to DNS, TCP/IP, HTTP, and HTTPS encryption.
+03-How-The-Internet-Works/How-The-Internet-Really-Works.md:
+  title: How The Internet Really Works — Packets, Routers, and Protocols
+  description: How the internet moves data using packets, IP addresses, routing, BGP, undersea cables, and data centers — explained from first principles.
+03-How-The-Internet-Works/How-A-Webpage-Reaches-Your-Screen.md:
+  title: What Happens When You Type A URL? How A Webpage Loads
+  description: Step by step from typing a URL to a rendered page — DNS lookup, TCP and TLS handshakes, HTTP request, server response, and browser rendering.
+03-How-The-Internet-Works/How-DNS-Works.md:
+  title: How DNS Works — The Internet's Phonebook Explained
+  description: How DNS turns domain names into IP addresses, with resolvers, root and TLD servers, caching, TTLs, record types, and common DNS failures and attacks.
+03-How-The-Internet-Works/How-HTTPS-Protects-Your-Data.md:
+  title: How HTTPS Works — TLS, Certificates, and Encryption Explained
+  description: How HTTPS keeps data private using TLS handshakes, certificates, public-key and symmetric encryption, and what it does and doesn't protect.
+03-How-The-Internet-Works/HTTP-TCP-IP-and-the-Protocol-Stack.md:
+  title: HTTP, TCP/IP, and the Protocol Stack Explained Simply
+  description: How the network protocol layers fit together — IP, TCP, UDP, HTTP/1.1, HTTP/2, HTTP/3 — and why streaming AI responses stress them.
+
+04-Data-And-Storage/README.md:
+  title: Data and Storage — Databases, File Systems, and Replication
+  description: Learn how databases, file systems, replication, and backups work, and how to choose between SQL, NoSQL, and vector search.
+04-Data-And-Storage/How-Databases-Work.md:
+  title: How Databases Work — Indexes, B-Trees, Transactions, and Queries
+  description: How databases store data on disk, use B-tree indexes, plan queries, and guarantee ACID transactions — plus vector search and AI-generated SQL.
+04-Data-And-Storage/SQL-vs-NoSQL-The-Real-Difference.md:
+  title: SQL vs NoSQL — The Real Difference and When To Use Each
+  description: The real tradeoffs between relational and NoSQL databases — data models, consistency, scaling, and access patterns — and where vector databases fit.
+04-Data-And-Storage/How-File-Systems-Work.md:
+  title: How File Systems Work — Inodes, Journaling, and Durability
+  description: How file systems organize data on disk with inodes, directories, journaling, and caching, and how to write files safely and atomically.
+04-Data-And-Storage/Data-Replication-Strategies.md:
+  title: Data Replication Explained — Leader, Multi-Leader, Leaderless
+  description: How databases replicate data using leader-follower, multi-leader, and leaderless designs, with replication lag, failover, and conflict resolution.
+04-Data-And-Storage/Backup-Recovery-and-Durability.md:
+  title: Backup, Recovery, and Durability — RPO, RTO, and Restores
+  description: How to design backups and disaster recovery with RPO, RTO, point-in-time recovery, and tested restores — including protection from AI agent mistakes.
+
+05-Distributed-Systems/README.md:
+  title: Distributed Systems Explained — CAP, Consistency, and Caching
+  description: Why distributed systems are hard and how engineers handle unreliable networks, partial failure, consistency, and caching at scale.
+05-Distributed-Systems/Why-Distributed-Systems-Are-Hard.md:
+  title: Why Distributed Systems Are Hard — Failures, Clocks, Networks
+  description: The fallacies of distributed computing, partial failure, clock skew, retries, and idempotency explained simply — and why AI agents face the same problems.
+05-Distributed-Systems/CAP-Theorem-Explained.md:
+  title: CAP Theorem Explained Simply — Consistency, Availability, Partitions
+  description: What the CAP theorem really says, common misconceptions, PACELC, and how real systems choose between consistency and availability during failures.
+05-Distributed-Systems/Consistency-vs-Availability.md:
+  title: Consistency Models Explained — Strong, Eventual, and In Between
+  description: Linearizability, sequential, causal, read-your-writes, and eventual consistency explained with examples, and how to choose the right model.
+05-Distributed-Systems/How-Caching-Works.md:
+  title: How Caching Works — Strategies, Eviction, and Invalidation
+  description: Cache hits and misses, cache-aside and write-through, LRU eviction, TTLs, CDNs, and cache invalidation explained — plus prompt caching and semantic caching for LLMs.
+
+06-System-Design/README.md:
+  title: System Design Guide — How To Design Systems At Any Scale
+  description: A first-principles approach to system design — requirements, constraints, tradeoffs, and estimation — including designing AI assistants.
+07-Software-Architecture/README.md:
+  title: Software Architecture — Coupling, Boundaries, and Tradeoffs
+  description: The principles of software architecture — monoliths vs microservices, coupling and cohesion, event-driven design, and where AI components fit.
+
+08-Scalability/README.md:
+  title: Scalability Explained — Scaling From 1 User To 1 Billion
+  description: How systems scale with vertical and horizontal scaling, load balancing, sharding, rate limiting, and auto-scaling — including AI inference workloads.
+08-Scalability/Vertical-vs-Horizontal-Scaling.md:
+  title: Vertical vs Horizontal Scaling — Scale Up or Scale Out?
+  description: The tradeoffs between bigger machines and more machines, stateless design, and when each approach makes sense — with AI model serving examples.
+08-Scalability/How-Load-Balancing-Works.md:
+  title: How Load Balancing Works — Algorithms, L4 vs L7, Health Checks
+  description: Round robin, least connections, consistent hashing, L4 vs L7 load balancers, and health checks explained — and how to balance LLM traffic.
+08-Scalability/Database-Sharding.md:
+  title: Database Sharding Explained — Shard Keys, Hot Spots, Resharding
+  description: How database sharding works, how to choose a shard key, handle hot shards and cross-shard queries, and reshard safely as data grows.
+08-Scalability/Rate-Limiting-and-Throttling.md:
+  title: Rate Limiting Explained — Token Bucket, Sliding Window, 429s
+  description: Token bucket, leaky bucket, fixed and sliding window rate limiting explained with code — plus token-based limits and cost budgets for AI APIs.
+08-Scalability/Auto-scaling-and-Capacity-Planning.md:
+  title: Auto-scaling and Capacity Planning Explained
+  description: How auto-scaling works, which metrics to scale on, how to plan capacity for peak load, and why GPU inference needs different signals.
+
+09-Security/README.md:
+  title: Software Security Fundamentals — How Systems Break
+  description: The security mindset, defense in depth, common web attacks, zero trust, and securing AI systems against prompt injection.
+10-Reliability/README.md:
+  title: Reliability Engineering — Building Systems That Survive Failure
+  description: How reliable systems are designed for failure with redundancy, chaos engineering, disaster recovery, observability, and graceful degradation.
+11-Production-Engineering/README.md:
+  title: Production Engineering — Deployments, Incidents, and SLOs
+  description: Operating software in production — deployment strategies, incident response, postmortems, SLOs and error budgets, and operating LLM features.
+12-Engineering-Leadership/README.md:
+  title: Engineering Leadership — Decisions, Design Docs, Mentoring
+  description: Technical decision-making, design documents, code review, mentoring, estimation, and leading engineering teams through AI adoption.
+13-Case-Studies/README.md:
+  title: System Design Case Studies — How Google, Netflix, and UPI Work
+  description: Architecture deep dives into how large real-world systems such as search, video streaming, messaging, payments, and LLM services work.
+
+14-Learning-Paths/README.md:
+  title: Software Engineering Learning Paths — Beginner to AI Engineer
+  description: Guided reading paths for beginners, backend, system design, SRE, leadership, and AI engineering, plus prompts for studying with an AI assistant.
+
+15-AI-Era-Engineering/README.md:
+  title: AI Engineering For Software Engineers — LLMs, RAG, Agents
+  description: What every software engineer needs to know about LLMs, AI coding assistants, RAG, agents, evaluation, and AI security — no ML background needed.
+15-AI-Era-Engineering/How-LLMs-Actually-Work.md:
+  title: How LLMs Work — Tokens, Context Windows, and Hallucinations
+  description: How large language models work for engineers — tokens, context windows, sampling, prefill vs decode, KV cache, tool calling, and why models hallucinate.
+15-AI-Era-Engineering/Engineering-With-AI-Assistants.md:
+  title: How To Code With AI Assistants — A Workflow That Holds Up
+  description: A practical workflow for coding with AI assistants and agents — specify, plan, verify, review — plus common mistakes and team policies.
+15-AI-Era-Engineering/Building-LLM-Powered-Systems.md:
+  title: Building LLM Apps — RAG, Tool Calling, and AI Agents Explained
+  description: How to build production LLM applications with retrieval-augmented generation, tool calling, agents, guardrails, observability, and cost control.
+15-AI-Era-Engineering/Evaluating-AI-Systems.md:
+  title: How To Evaluate LLM Applications — Evals, Judges, and Metrics
+  description: How to test AI features with eval datasets, programmatic graders, LLM-as-judge, and CI gates so prompt and model changes don't cause regressions.
+15-AI-Era-Engineering/Securing-AI-Systems.md:
+  title: Prompt Injection and AI Security Explained — Securing LLM Apps
+  description: What prompt injection is, why it has no complete fix, the lethal trifecta, and how to secure LLM apps and AI coding agents with least privilege.
