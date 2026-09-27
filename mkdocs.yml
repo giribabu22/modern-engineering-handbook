@@ -108,6 +108,15 @@ nav:
       - CAP Theorem Explained: 05-Distributed-Systems/CAP-Theorem-Explained.md
       - Consistency vs Availability: 05-Distributed-Systems/Consistency-vs-Availability.md
       - How Caching Works: 05-Distributed-Systems/How-Caching-Works.md
+  - System Design:
+      - 06-System-Design/index.md
+      - How To Design Any System: 06-System-Design/How-To-Design-Any-System.md
+      - How To Handle 1 Million Users: 06-System-Design/How-To-Handle-1-Million-Users.md
+      - Designing A Chat System: 06-System-Design/Designing-A-Chat-System.md
+      - Designing A Payment System: 06-System-Design/Designing-A-Payment-System.md
+      - Designing A Search System: 06-System-Design/Designing-A-Search-System.md
+      - Designing An AI Assistant Over Private Data: 06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md
+      - Designing An AI Gateway: 06-System-Design/Designing-An-AI-Gateway.md
   - Scalability:
       - 08-Scalability/index.md
       - Vertical vs Horizontal Scaling: 08-Scalability/Vertical-vs-Horizontal-Scaling.md
@@ -124,7 +133,6 @@ nav:
       - Securing AI Systems: 15-AI-Era-Engineering/Securing-AI-Systems.md
   - More:
       - Learning Paths: 14-Learning-Paths/index.md
-      - System Design: 06-System-Design/index.md
       - Software Architecture: 07-Software-Architecture/index.md
       - Security: 09-Security/index.md
       - Reliability: 10-Reliability/index.md

@@ -48,7 +48,7 @@ AI systems are also built from the same parts as every other system. An LLM call
 | [03 — How The Internet Works](03-How-The-Internet-Works/README.md) | Networks, DNS, HTTP, HTTPS | ✅ 5 of 6 chapters |
 | [04 — Data And Storage](04-Data-And-Storage/README.md) | Databases, file systems, replication, backups | ✅ 5 of 6 chapters |
 | [05 — Distributed Systems](05-Distributed-Systems/README.md) | The hard problems of distributed computing | 4 of 8 chapters |
-| [06 — System Design](06-System-Design/README.md) | How to design systems at any scale | 📝 Planned |
+| [06 — System Design](06-System-Design/README.md) | How to design systems at any scale — chat, payments, search, AI assistants | ✅ 7 of 7 chapters |
 | [07 — Software Architecture](07-Software-Architecture/README.md) | Patterns, coupling, boundaries | 📝 Planned |
 | [08 — Scalability](08-Scalability/README.md) | From 1 user to 1 billion users | ✅ 5 of 5 chapters |
 | [09 — Security](09-Security/README.md) | How systems break and how to protect them | 📝 Planned |

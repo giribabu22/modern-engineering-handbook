@@ -72,7 +72,8 @@ This section provides guided reading paths for different roles and goals. Each p
 10. [Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md)
 11. [Rate Limiting and Throttling](../08-Scalability/Rate-Limiting-and-Throttling.md) and [How Load Balancing Works](../08-Scalability/How-Load-Balancing-Works.md)
 12. [Auto-scaling and Capacity Planning](../08-Scalability/Auto-scaling-and-Capacity-Planning.md)
-13. 📝 Operating LLM Features: Cost, Latency, and Quality (Section 11)
+13. [Designing An AI Assistant Over Private Data](../06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md) and [Designing An AI Gateway](../06-System-Design/Designing-An-AI-Gateway.md) — two complete AI system designs
+14. 📝 Operating LLM Features: Cost, Latency, and Quality (Section 11)
 
 **Capstone project:** Build a question-answering assistant over a set of documents you know well (your team's docs, a product manual, this handbook). Include hybrid retrieval with citations, an eval set of at least 30 questions, a token budget per user, trace logging, and a written threat model using the lethal-trifecta test.
 
@@ -108,7 +109,9 @@ This section provides guided reading paths for different roles and goals. Each p
 9. [Rate Limiting and Throttling](../08-Scalability/Rate-Limiting-and-Throttling.md)
 10. [Auto-scaling and Capacity Planning](../08-Scalability/Auto-scaling-and-Capacity-Planning.md)
 11. [Building LLM-Powered Systems](../15-AI-Era-Engineering/Building-LLM-Powered-Systems.md) — "design an AI assistant" is now a common interview question
-12. 📝 How To Design Any System (Section 06)
+12. [How To Design Any System](../06-System-Design/How-To-Design-Any-System.md) — the method to use in every interview
+13. [How To Handle 1 Million Users](../06-System-Design/How-To-Handle-1-Million-Users.md)
+14. Practice designs: [Chat](../06-System-Design/Designing-A-Chat-System.md) · [Payments](../06-System-Design/Designing-A-Payment-System.md) · [Search](../06-System-Design/Designing-A-Search-System.md) · [AI Assistant](../06-System-Design/Designing-An-AI-Assistant-Over-Private-Data.md) · [AI Gateway](../06-System-Design/Designing-An-AI-Gateway.md)
 
 **Interview tip:** Practice with an AI as your interviewer — ask it to play a skeptical senior engineer who pushes back on every tradeoff you state. Then write down the questions that stumped you and find the answers in the handbook, not in the AI's reply.
 
