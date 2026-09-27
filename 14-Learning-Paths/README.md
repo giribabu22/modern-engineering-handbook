@@ -151,7 +151,12 @@ This section provides guided reading paths for different roles and goals. Each p
 3. [Engineering With AI Assistants](../15-AI-Era-Engineering/Engineering-With-AI-Assistants.md) — especially "Production Engineering Perspective" and the leadership interview questions
 4. [Securing AI Systems](../15-AI-Era-Engineering/Securing-AI-Systems.md) — the organization-wide standards question
 5. [Evaluating AI Systems](../15-AI-Era-Engineering/Evaluating-AI-Systems.md) — building an evaluation culture
-6. 📝 Section 12 (Engineering Leadership)
+6. [Making Technical Decisions](../12-Engineering-Leadership/Making-Technical-Decisions.md)
+7. [Writing Design Documents](../12-Engineering-Leadership/Writing-Design-Documents.md)
+8. [Code Review: Giving and Receiving Feedback](../12-Engineering-Leadership/Code-Review-Giving-And-Receiving-Feedback.md)
+9. [Mentoring Junior Engineers](../12-Engineering-Leadership/Mentoring-Junior-Engineers.md)
+10. [Estimating Software Projects](../12-Engineering-Leadership/Estimating-Software-Projects.md)
+11. [Leading Teams in the AI Era](../12-Engineering-Leadership/Leading-Teams-In-The-AI-Era.md)
 
 ---
 

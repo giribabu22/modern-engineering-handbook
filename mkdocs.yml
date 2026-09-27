@@ -76,6 +76,7 @@ extra:
 
 nav:
   - Home: index.md
+  - What's New: CHANGELOG.md
   - Foundations:
       - 01-Foundations/index.md
       - Why Software Exists: 01-Foundations/Why-Software-Exists.md
@@ -156,6 +157,14 @@ nav:
       - Capacity Planning in Practice: 11-Production-Engineering/Capacity-Planning-In-Practice.md
       - SLOs in Practice: 11-Production-Engineering/SLOs-In-Practice.md
       - Operating LLM Features: 11-Production-Engineering/Operating-LLM-Features.md
+  - Leadership:
+      - 12-Engineering-Leadership/index.md
+      - Making Technical Decisions: 12-Engineering-Leadership/Making-Technical-Decisions.md
+      - Writing Design Documents: 12-Engineering-Leadership/Writing-Design-Documents.md
+      - Code Review: 12-Engineering-Leadership/Code-Review-Giving-And-Receiving-Feedback.md
+      - Mentoring Junior Engineers: 12-Engineering-Leadership/Mentoring-Junior-Engineers.md
+      - Estimating Software Projects: 12-Engineering-Leadership/Estimating-Software-Projects.md
+      - Leading Teams in the AI Era: 12-Engineering-Leadership/Leading-Teams-In-The-AI-Era.md
   - AI Engineering:
       - 15-AI-Era-Engineering/index.md
       - How LLMs Actually Work: 15-AI-Era-Engineering/How-LLMs-Actually-Work.md
@@ -165,5 +174,4 @@ nav:
       - Securing AI Systems: 15-AI-Era-Engineering/Securing-AI-Systems.md
   - More:
       - Learning Paths: 14-Learning-Paths/index.md
-      - Engineering Leadership: 12-Engineering-Leadership/index.md
       - Case Studies: 13-Case-Studies/index.md

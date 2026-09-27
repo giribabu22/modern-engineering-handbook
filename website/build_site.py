@@ -36,6 +36,7 @@ LINK = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)\)")
 
 def source_pages():
     yield ROOT / "README.md"
+    yield ROOT / "CHANGELOG.md"
     for folder in sorted(p for p in ROOT.iterdir() if p.is_dir() and SECTION.match(p.name)):
         # Section overview (README) first, then chapters.
         yield from sorted(folder.glob("*.md"), key=lambda p: (p.name != "README.md", p.name))
@@ -117,7 +118,7 @@ def write_llms_txt(pages):
              ""]
     current = None
     for page in pages[1:]:
-        section = page["rel"].split("/")[0]
+        section = page["rel"].split("/")[0] if "/" in page["rel"] else "00-Updates"
         if section != current:
             current = section
             lines += ["", f"## {section[3:].replace('-', ' ')}", ""]

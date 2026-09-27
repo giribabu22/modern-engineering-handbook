@@ -5,6 +5,8 @@
 
 📖 **Read it online:** [giribabu22.github.io/modern-engineering-handbook](https://giribabu22.github.io/modern-engineering-handbook/) — with search, navigation, and dark mode.
 
+🆕 **[What's New](CHANGELOG.md)** — 42 new chapters, hands-on labs, quizzes, and diagrams in every chapter (September 2026).
+
 ---
 
 ## What Is This?
@@ -54,7 +56,7 @@ AI systems are also built from the same parts as every other system. An LLM call
 | [09 — Security](09-Security/README.md) | How systems break and how to protect them — web attacks, zero trust, crypto, supply chain | ✅ 6 of 6 chapters |
 | [10 — Reliability](10-Reliability/README.md) | Building systems that survive failure — SRE, chaos engineering, DR, observability | ✅ 6 of 6 chapters |
 | [11 — Production Engineering](11-Production-Engineering/README.md) | Operating software in the real world — deploys, incidents, capacity, SLOs, AI ops | ✅ 6 of 6 chapters |
-| [12 — Engineering Leadership](12-Engineering-Leadership/README.md) | Technical decision-making and mentorship | 📝 Planned |
+| [12 — Engineering Leadership](12-Engineering-Leadership/README.md) | Decisions, design docs, code review, mentoring, estimation, AI adoption | ✅ 6 of 6 chapters |
 | [13 — Case Studies](13-Case-Studies/README.md) | How Google, Netflix, Amazon, and others actually work | 📝 Planned |
 | [14 — Learning Paths](14-Learning-Paths/README.md) | Guided reading paths for different roles | ✅ Available |
 | [15 — AI-Era Engineering](15-AI-Era-Engineering/README.md) | LLMs, AI assistants, RAG, agents, evals, AI security | ✅ 5 of 8 chapters |

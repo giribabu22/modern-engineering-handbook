@@ -7,6 +7,10 @@ README.md:
   title: "Modern Software Engineering Handbook — Learn From First Principles"
   description: "A free handbook that explains how computers, the internet, databases, distributed systems, scalability, and AI engineering really work — from first principles."
 
+CHANGELOG.md:
+  title: "What’s New in the Modern Software Engineering Handbook"
+  description: "Latest updates: new chapters on system design, architecture, security, reliability, production engineering, leadership, and AI engineering, plus labs and quizzes."
+
 01-Foundations/README.md:
   title: "Software Engineering Foundations — How Engineers Think"
   description: "Learn the mindset, problem-solving methods, and tradeoff thinking every software engineer needs, and why they matter more when AI writes code."
@@ -223,8 +227,27 @@ README.md:
   title: "Operating LLM Features — Cost, Latency, and Quality in Production"
   description: "How to run AI features in production: token cost attribution, latency (TTFT), quality monitoring, prompt and model versioning, caching, and model routing."
 12-Engineering-Leadership/README.md:
-  title: "Engineering Leadership — Decisions, Design Docs, Mentoring"
-  description: "Technical decision-making, design documents, code review, mentoring, estimation, and leading engineering teams through AI adoption."
+  title: "Engineering Leadership — Decisions, Design Docs, Reviews, Mentoring"
+  description: "Engineering leadership skills: technical decisions, design documents, code review, mentoring, estimation, and leading teams through AI adoption."
+12-Engineering-Leadership/Making-Technical-Decisions.md:
+  title: "Making Technical Decisions — One-Way Doors, Tradeoffs, Decision Rights"
+  description: "How to make technical decisions well: one-way vs two-way doors, framing options, decision rights (DACI), disagree and commit, build vs buy, and bias."
+12-Engineering-Leadership/Writing-Design-Documents.md:
+  title: "How To Write a Software Design Document — Template and Tips"
+  description: "Writing design docs engineers actually read: structure, goals and non-goals, alternatives, rollout, running design reviews, and design docs vs ADRs vs RFCs."
+12-Engineering-Leadership/Code-Review-Giving-And-Receiving-Feedback.md:
+  title: "Code Review Best Practices — Giving and Receiving Feedback"
+  description: "Effective code review: what to look for, small PRs, fast turnaround, labeled comments, kind feedback, receiving critique, and reviewing AI-generated code."
+12-Engineering-Leadership/Mentoring-Junior-Engineers.md:
+  title: "Mentoring Junior Engineers — Onboarding, Feedback, Growth Plans"
+  description: "How to mentor junior engineers: onboarding, stretch assignments, questions before answers, feedback, psychological safety, growth plans, and learning with AI."
+12-Engineering-Leadership/Estimating-Software-Projects.md:
+  title: "Software Estimation — Ranges, Monte Carlo Forecasts, and Scope"
+  description: "How to estimate software projects honestly: estimates vs commitments, cone of uncertainty, three-point estimates, throughput forecasting, and Monte Carlo."
+12-Engineering-Leadership/Leading-Teams-In-The-AI-Era.md:
+  title: "Leading Engineering Teams in the AI Era — Policy and Metrics"
+  description: "How to lead AI adoption in engineering teams: usage policies, enabling practices, DORA and SPACE metrics, protecting learning, roles, and hiring."
+
 13-Case-Studies/README.md:
   title: "System Design Case Studies — How Google, Netflix, and UPI Work"
   description: "Architecture deep dives into how large real-world systems such as search, video streaming, messaging, payments, and LLM services work."
